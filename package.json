@@ -1,0 +1,14 @@
+﻿{
+  "name": "video-material-finder",
+  "version": "0.0.0-stage0",
+  "private": true,
+  "description": "Stage 0 repository and technical verification for a local video material search assistant.",
+  "type": "module",
+  "scripts": {
+    "stage0:check": "node scripts/stage0/run-stage0-checks.mjs",
+    "test": "node --test tests/unit/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

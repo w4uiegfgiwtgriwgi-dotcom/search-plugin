@@ -1,14 +1,14 @@
 ﻿{
   "name": "video-material-finder",
-  "version": "0.0.0-stage0",
+  "version": "0.1.0-stage1",
   "private": true,
-  "description": "Stage 0 repository and technical verification for a local video material search assistant.",
+  "description": "Local video material search assistant monorepo.",
   "type": "module",
   "scripts": {
     "stage0:check": "node scripts/stage0/run-stage0-checks.mjs",
-    "test": "node --test tests/unit/*.test.mjs"
+    "test": "node --test tests/unit/*.test.mjs",
+    "test:api": "set PYTHONPATH=apps/local-api&& C:\\Users\\Administrator.DESKTOP-P33KF9U\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe -m unittest discover apps/local-api/tests",
+    "api:dev": "set PYTHONPATH=apps/local-api&& C:\\Users\\Administrator.DESKTOP-P33KF9U\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe -m vmf_api.server"
   },
-  "engines": {
-    "node": ">=20"
-  }
+  "engines": { "node": ">=20", "python": ">=3.11" }
 }

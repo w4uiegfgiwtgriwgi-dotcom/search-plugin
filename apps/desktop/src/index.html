@@ -1,0 +1,25 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>全网视频素材智能搜索助手</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="toolbar"><h1>全网视频素材智能搜索助手</h1><span class="badge">阶段1 MVP</span></section>
+      <section class="search-panel">
+        <textarea id="query" placeholder="输入画面描述、关键词、台词或 URL">极端高温废墟里，一个男人翻找垃圾，最后发现一台旧空调。</textarea>
+        <div class="controls">
+          <label><input type="checkbox" value="web-search" checked /> 公开网页</label>
+          <label><input type="checkbox" value="bilibili" checked /> B站样本</label>
+          <button id="search">开始搜索</button>
+        </div>
+      </section>
+      <section class="status" id="status">等待搜索</section>
+      <section class="results" id="results"></section>
+    </main>
+    <script src="./renderer.js"></script>
+  </body>
+</html>

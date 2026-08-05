@@ -12,3 +12,7 @@ Thumbs.db
 
 # Local media generated during technical verification
 stage0-artifacts/
+.local-data/
+__pycache__/
+*.pyc
+

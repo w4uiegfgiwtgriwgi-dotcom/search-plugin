@@ -12,6 +12,7 @@ from .database import Database, loads_json_fields
 SUPPORTED_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
 ANALYSIS_VERSION = "stage2-mock-v1"
 EMBEDDING_MODEL = "mock-sha256-16"
+MAX_UPLOAD_BYTES = 20 * 1024 * 1024
 
 
 def _run(command: list[str]) -> subprocess.CompletedProcess[str]:
@@ -24,6 +25,12 @@ def _project_root() -> Path:
 
 def _data_dir() -> Path:
     path = _project_root() / ".local-data" / "stage2"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def _upload_dir() -> Path:
+    path = _data_dir() / "uploads"
     path.mkdir(parents=True, exist_ok=True)
     return path
 
@@ -137,10 +144,33 @@ def validate_image(path: Path) -> tuple[str, int]:
     size = path.stat().st_size
     if size <= 0:
         raise ValueError("图片文件为空")
-    if size > 20 * 1024 * 1024:
+    if size > MAX_UPLOAD_BYTES:
         raise ValueError("图片不能超过 20MB")
     mime_type = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
     return mime_type, size
+
+
+def save_uploaded_image(filename: str, data: bytes) -> Path:
+    original_name = Path(filename or "upload.png").name
+    suffix = Path(original_name).suffix.lower()
+    if suffix not in SUPPORTED_IMAGE_EXTENSIONS:
+        raise ValueError("仅支持 PNG/JPG/WebP 截图")
+    if not data:
+        raise ValueError("上传的图片为空")
+    if len(data) > MAX_UPLOAD_BYTES:
+        raise ValueError("图片不能超过 20MB")
+    digest = hashlib.sha1(data).hexdigest()[:12]
+    safe_stem = "".join(char if char.isalnum() or char in ("-", "_") else "-" for char in Path(original_name).stem)
+    safe_stem = safe_stem.strip("-_") or "upload"
+    output = _upload_dir() / f"{safe_stem}-{digest}{suffix}"
+    output.write_bytes(data)
+    try:
+        validate_image(output)
+        average_hash(output)
+    except Exception as exc:
+        output.unlink(missing_ok=True)
+        raise ValueError("上传的文件不是可解析图片") from exc
+    return output
 
 
 class MediaAnalyzer:
@@ -179,6 +209,10 @@ class MediaAnalyzer:
             ),
         ).lastrowid
         return self.get_asset(asset_id)
+
+    def analyze_uploaded_image(self, filename: str, data: bytes) -> dict[str, Any]:
+        path = save_uploaded_image(filename, data)
+        return self.analyze_image(path)
 
     def get_asset(self, asset_id: int) -> dict[str, Any]:
         asset = self.db.query_one("SELECT * FROM media_assets WHERE id = ?", (asset_id,))

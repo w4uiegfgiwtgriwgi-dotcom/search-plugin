@@ -4,13 +4,15 @@ from pydantic import Field
 from .service import LocalApiService
 
 try:
-    from fastapi import FastAPI, HTTPException, Response
+    from fastapi import FastAPI, File, HTTPException, Response, UploadFile
     from fastapi.middleware.cors import CORSMiddleware
     from pydantic import BaseModel
 except ModuleNotFoundError:
     FastAPI = None
+    File = None
     HTTPException = Exception
     Response = None
+    UploadFile = object
     CORSMiddleware = None
     BaseModel = object
 
@@ -102,6 +104,14 @@ if FastAPI:
         try:
             return service.analyze_image(request.image_path)
         except (FileNotFoundError, ValueError) as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.post("/api/assets/upload-image", status_code=201)
+    async def upload_image(file: UploadFile = File(...)):
+        try:
+            data = await file.read()
+            return service.analyze_uploaded_image(file.filename or "upload.png", data)
+        except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     @app.get("/api/assets/{asset_id}")

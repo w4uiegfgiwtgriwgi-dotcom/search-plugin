@@ -96,6 +96,8 @@ class LocalApiService:
         raise ValueError(f"unsupported export format: {fmt}")
     def analyze_image(self, image_path: str | Path) -> dict[str, Any]:
         return self.media_analyzer.analyze_image(image_path)
+    def analyze_uploaded_image(self, filename: str, data: bytes) -> dict[str, Any]:
+        return self.media_analyzer.analyze_uploaded_image(filename, data)
     def get_asset(self, asset_id: int) -> dict[str, Any]:
         return self.media_analyzer.get_asset(asset_id)
     def find_frame_match(self, query_asset_id: int, candidate_video_path: str | Path, fps: float = 1.0, threshold: float = 0.78) -> dict[str, Any]:

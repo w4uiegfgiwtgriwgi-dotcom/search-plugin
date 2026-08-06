@@ -39,6 +39,32 @@ async function api(path, options = {}) {
   return type.includes("application/json") ? response.json() : response.text();
 }
 
+async function uploadImage(file) {
+  const body = new FormData();
+  body.append("file", file);
+  const response = await fetch(`${apiBase}/api/assets/upload-image`, {
+    method: "POST",
+    body
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || response.statusText);
+  }
+  return response.json();
+}
+
+function renderAsset(asset) {
+  currentAssetId = asset.id;
+  stage2Output.textContent = JSON.stringify({
+    asset_id: asset.id,
+    source_path: asset.source_path,
+    size: `${asset.width || "?"}x${asset.height || "?"}`,
+    ocr_text: asset.ocr_text,
+    phash: asset.perceptual_hash,
+    thumbnail_path: asset.thumbnail_path
+  }, null, 2);
+}
+
 function renderResults(results) {
   currentResults = results;
   resultsEl.innerHTML = results.map((item) => `
@@ -142,16 +168,23 @@ document.querySelector("#analyze-image").addEventListener("click", async () => {
       method: "POST",
       body: JSON.stringify({ image_path: imagePath })
     });
-    currentAssetId = asset.id;
-    stage2Output.textContent = JSON.stringify({
-      asset_id: asset.id,
-      size: `${asset.width || "?"}x${asset.height || "?"}`,
-      ocr_text: asset.ocr_text,
-      phash: asset.perceptual_hash,
-      thumbnail_path: asset.thumbnail_path
-    }, null, 2);
+    renderAsset(asset);
   } catch (error) {
     stage2Output.textContent = `截图分析失败：${error.message}`;
+  }
+});
+
+document.querySelector("#upload-image").addEventListener("click", async () => {
+  const file = document.querySelector("#image-file").files[0];
+  if (!file) {
+    stage2Output.textContent = "请先选择一张截图";
+    return;
+  }
+  try {
+    const asset = await uploadImage(file);
+    renderAsset(asset);
+  } catch (error) {
+    stage2Output.textContent = `截图上传失败：${error.message}`;
   }
 });
 

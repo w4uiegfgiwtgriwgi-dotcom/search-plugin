@@ -322,6 +322,38 @@ class LocalApiService:
         top_k: int = 10,
     ) -> dict[str, Any]:
         return self.frame_matcher.find_batch_matches(query_asset_id, candidate_video_paths, fps, threshold, refine_fps, refine_window_ms, top_k)
+    def find_multi_asset_frame_matches(
+        self,
+        query_asset_ids: list[int],
+        candidate_video_paths: list[str | Path],
+        fps: float = 1.0,
+        threshold: float = 0.78,
+        refine_fps: float = 4.0,
+        refine_window_ms: int = 1000,
+        top_k: int = 10,
+    ) -> dict[str, Any]:
+        asset_ids = [int(asset_id) for asset_id in query_asset_ids]
+        if not asset_ids:
+            raise ValueError("请至少提供一张已分析截图")
+        if len(asset_ids) > 20:
+            raise ValueError("阶段2单次最多匹配 20 张截图")
+        batches: list[dict[str, Any]] = []
+        errors: list[dict[str, str]] = []
+        for asset_id in asset_ids:
+            try:
+                batches.append(self.find_batch_frame_matches(asset_id, candidate_video_paths, fps, threshold, refine_fps, refine_window_ms, top_k))
+            except (KeyError, ValueError) as exc:
+                errors.append({"query_asset_id": str(asset_id), "error": str(exc)})
+        best_matches = [batch["matches"][0] for batch in batches if batch["matches"]]
+        best_matches.sort(key=lambda item: item["combined_score"], reverse=True)
+        return {
+            "asset_count": len(asset_ids),
+            "batch_count": len(batches),
+            "error_count": len(errors),
+            "batches": batches,
+            "best_matches": best_matches[:top_k],
+            "errors": errors,
+        }
     def get_match(self, match_id: int) -> dict[str, Any]:
         return self.frame_matcher.get_match(match_id)
     def _insert_result(self, task_id: int, result: SearchResult) -> int:

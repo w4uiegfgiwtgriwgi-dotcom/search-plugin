@@ -68,6 +68,15 @@ if FastAPI:
         refine_window_ms: int = 1000
         top_k: int = 10
 
+    class FindMultiAssetMatchRequest(BaseModel):
+        query_asset_ids: list[int]
+        candidate_video_paths: list[str]
+        fps: float = 1.0
+        threshold: float = 0.78
+        refine_fps: float = 4.0
+        refine_window_ms: int = 1000
+        top_k: int = 10
+
     @app.get("/api/platforms")
     def list_platforms():
         return service.list_platforms()
@@ -199,6 +208,21 @@ if FastAPI:
         try:
             return service.find_batch_frame_matches(
                 request.query_asset_id,
+                request.candidate_video_paths,
+                request.fps,
+                request.threshold,
+                request.refine_fps,
+                request.refine_window_ms,
+                request.top_k,
+            )
+        except (FileNotFoundError, KeyError, ValueError) as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.post("/api/matches/batch-assets", status_code=201)
+    def find_multi_asset_matches(request: FindMultiAssetMatchRequest):
+        try:
+            return service.find_multi_asset_frame_matches(
+                request.query_asset_ids,
                 request.candidate_video_paths,
                 request.fps,
                 request.threshold,

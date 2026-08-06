@@ -157,6 +157,25 @@ class Stage2MediaMatchingTest(unittest.TestCase):
         self.assertGreaterEqual(batch["matches"][0]["combined_score"], batch["matches"][1]["combined_score"])
         self.assertIn("missing.mp4", batch["errors"][0]["candidate_video_path"])
 
+    def test_multi_asset_matching_runs_each_query_against_candidates(self):
+        first = self.service.analyze_image(self.query_frame_path)
+        second = self.service.analyze_image(self.variant_paths["tone"])
+        result = self.service.find_multi_asset_frame_matches(
+            [first["id"], second["id"]],
+            [str(self.video_path), str(self.decoy_video_path)],
+            fps=1.0,
+            threshold=ROBUSTNESS_THRESHOLD,
+            refine_fps=4.0,
+            top_k=5,
+        )
+
+        self.assertEqual(result["asset_count"], 2)
+        self.assertEqual(result["batch_count"], 2)
+        self.assertEqual(result["error_count"], 0)
+        self.assertEqual(len(result["batches"]), 2)
+        self.assertEqual({batch["query_asset_id"] for batch in result["batches"]}, {first["id"], second["id"]})
+        self.assertGreaterEqual(len(result["best_matches"]), 2)
+
     def test_save_frame_match_material_to_project(self):
         project = self.service.create_project("截图反查项目")
         asset = self.service.analyze_image(self.query_frame_path)

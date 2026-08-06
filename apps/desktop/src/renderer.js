@@ -12,6 +12,7 @@ const screenshotDropzone = document.querySelector("#screenshot-dropzone");
 let currentTaskId = null;
 let currentResults = [];
 let currentAssetId = null;
+let currentAssetIds = [];
 let currentMatch = null;
 
 function renderApiStatus(status) {
@@ -95,7 +96,8 @@ function isSupportedImageFile(file) {
 }
 
 function renderBatchAssets(batch) {
-  currentAssetId = batch.assets[0]?.id || null;
+  currentAssetIds = batch.assets.map((asset) => asset.id);
+  currentAssetId = currentAssetIds[0] || null;
   currentMatch = null;
   stage2Output.textContent = JSON.stringify({
     upload_count: batch.upload_count,
@@ -131,6 +133,7 @@ async function analyzeUploadedFiles(files, label = "截图") {
 
 function renderAsset(asset) {
   currentAssetId = asset.id;
+  currentAssetIds = [asset.id];
   currentMatch = null;
   stage2Output.textContent = JSON.stringify({
     asset_id: asset.id,
@@ -184,6 +187,36 @@ function renderBatchMatches(batch) {
       local_frame_path: match.local_frame_path
     })),
     errors: batch.errors
+  }, null, 2);
+}
+
+function renderMultiAssetMatches(result) {
+  currentMatch = result.best_matches[0] || null;
+  stage2Output.textContent = JSON.stringify({
+    asset_count: result.asset_count,
+    batch_count: result.batch_count,
+    error_count: result.error_count,
+    best_matches: result.best_matches.map((match) => ({
+      query_asset_id: match.query_asset_id,
+      match_id: match.id,
+      candidate_video_path: match.candidate_video_path,
+      match_type: match.match_type,
+      timestamp_ms: match.timestamp_ms,
+      combined_score: match.combined_score,
+      local_frame_path: match.local_frame_path
+    })),
+    batches: result.batches.map((batch) => ({
+      query_asset_id: batch.query_asset_id,
+      match_count: batch.match_count,
+      error_count: batch.error_count,
+      top_match: batch.matches[0] ? {
+        match_id: batch.matches[0].id,
+        candidate_video_path: batch.matches[0].candidate_video_path,
+        timestamp_ms: batch.matches[0].timestamp_ms,
+        combined_score: batch.matches[0].combined_score
+      } : null
+    })),
+    errors: result.errors
   }, null, 2);
 }
 
@@ -455,6 +488,28 @@ document.querySelector("#find-batch-match").addEventListener("click", async () =
     renderBatchMatches(batch);
   } catch (error) {
     stage2Output.textContent = `批量候选视频匹配失败：${friendlyError(error)}`;
+  }
+});
+
+document.querySelector("#find-multi-asset-match").addEventListener("click", async () => {
+  const paths = document.querySelector("#video-paths").value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
+  if (currentAssetIds.length === 0) {
+    stage2Output.textContent = "请先上传或分析至少一张截图";
+    return;
+  }
+  if (paths.length === 0) {
+    stage2Output.textContent = "请先填写批量候选视频路径";
+    return;
+  }
+  try {
+    const options = readMatchOptions();
+    const result = await api("/api/matches/batch-assets", {
+      method: "POST",
+      body: JSON.stringify({ query_asset_ids: currentAssetIds, candidate_video_paths: paths, ...options, top_k: 10 })
+    });
+    renderMultiAssetMatches(result);
+  } catch (error) {
+    stage2Output.textContent = `批量截图匹配失败：${friendlyError(error)}`;
   }
 });
 

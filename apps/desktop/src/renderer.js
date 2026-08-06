@@ -8,6 +8,7 @@ const librarySummary = document.querySelector("#library-summary");
 const libraryList = document.querySelector("#library-list");
 const libraryFilter = document.querySelector("#library-filter");
 const librarySort = document.querySelector("#library-sort");
+const screenshotDropzone = document.querySelector("#screenshot-dropzone");
 let currentTaskId = null;
 let currentResults = [];
 let currentAssetId = null;
@@ -37,11 +38,29 @@ async function api(path, options = {}) {
     ...options
   });
   if (!response.ok) {
-    const text = await response.text();
-    throw new Error(text || response.statusText);
+    throw new Error(await errorMessageFromResponse(response));
   }
   const type = response.headers.get("content-type") || "";
   return type.includes("application/json") ? response.json() : response.text();
+}
+
+async function errorMessageFromResponse(response) {
+  const text = await response.text();
+  if (!text) return response.statusText;
+  try {
+    const payload = JSON.parse(text);
+    if (typeof payload.detail === "string") return payload.detail;
+    if (Array.isArray(payload.detail)) return payload.detail.map((item) => item.msg || JSON.stringify(item)).join("；");
+  } catch {
+    return text;
+  }
+  return text;
+}
+
+function friendlyError(error) {
+  const message = error?.message || String(error);
+  if (message === "Failed to fetch") return "本地 API 暂时不可用，请确认桌面端 API 已启动";
+  return message;
 }
 
 async function uploadImage(file) {
@@ -52,10 +71,28 @@ async function uploadImage(file) {
     body
   });
   if (!response.ok) {
-    const text = await response.text();
-    throw new Error(text || response.statusText);
+    throw new Error(await errorMessageFromResponse(response));
   }
   return response.json();
+}
+
+function isSupportedImageFile(file) {
+  const suffix = (file.name || "").toLowerCase().split(".").pop();
+  return file.type.startsWith("image/") || ["png", "jpg", "jpeg", "webp"].includes(suffix);
+}
+
+async function analyzeUploadedFile(file, label = "截图") {
+  if (!file) {
+    stage2Output.textContent = "请先选择一张截图";
+    return;
+  }
+  if (!isSupportedImageFile(file)) {
+    stage2Output.textContent = "仅支持 PNG/JPG/WebP 截图";
+    return;
+  }
+  stage2Output.textContent = `${label}上传分析中`;
+  const asset = await uploadImage(file);
+  renderAsset(asset);
 }
 
 function renderAsset(asset) {
@@ -255,7 +292,7 @@ document.querySelector("#search").addEventListener("click", async () => {
     statusEl.textContent = `任务 ${task.id}：${task.status}，找到 ${results.length} 条`;
     renderResults(results);
   } catch (error) {
-    statusEl.textContent = `本地 API 不可用：${error.message}`;
+    statusEl.textContent = `本地 API 不可用：${friendlyError(error)}`;
   }
 });
 
@@ -268,7 +305,7 @@ document.querySelector("#create-project").addEventListener("click", async () => 
     await refreshLibrary();
     statusEl.textContent = `已创建项目：${project.name}`;
   } catch (error) {
-    statusEl.textContent = `创建项目失败：${error.message}`;
+    statusEl.textContent = `创建项目失败：${friendlyError(error)}`;
   }
 });
 
@@ -278,7 +315,7 @@ resultsEl.addEventListener("click", async (event) => {
   try {
     await saveResult(button.dataset.saveResult);
   } catch (error) {
-    statusEl.textContent = `收藏失败：${error.message}`;
+    statusEl.textContent = `收藏失败：${friendlyError(error)}`;
   }
 });
 
@@ -295,20 +332,20 @@ document.querySelectorAll("button[data-export]").forEach((button) => {
 
 projectSelect.addEventListener("change", () => {
   refreshLibrary().catch((error) => {
-    librarySummary.textContent = `项目素材刷新失败：${error.message}`;
+    librarySummary.textContent = `项目素材刷新失败：${friendlyError(error)}`;
   });
 });
 
 document.querySelector("#refresh-library").addEventListener("click", () => {
   refreshLibrary().catch((error) => {
-    librarySummary.textContent = `项目素材刷新失败：${error.message}`;
+    librarySummary.textContent = `项目素材刷新失败：${friendlyError(error)}`;
   });
 });
 
 [libraryFilter, librarySort].forEach((control) => {
   control?.addEventListener("change", () => {
     refreshLibrary().catch((error) => {
-      librarySummary.textContent = `项目素材刷新失败：${error.message}`;
+      librarySummary.textContent = `项目素材刷新失败：${friendlyError(error)}`;
     });
   });
 });
@@ -330,21 +367,16 @@ document.querySelector("#analyze-image").addEventListener("click", async () => {
     });
     renderAsset(asset);
   } catch (error) {
-    stage2Output.textContent = `截图分析失败：${error.message}`;
+    stage2Output.textContent = `截图分析失败：${friendlyError(error)}`;
   }
 });
 
 document.querySelector("#upload-image").addEventListener("click", async () => {
   const file = document.querySelector("#image-file").files[0];
-  if (!file) {
-    stage2Output.textContent = "请先选择一张截图";
-    return;
-  }
   try {
-    const asset = await uploadImage(file);
-    renderAsset(asset);
+    await analyzeUploadedFile(file, "选择的截图");
   } catch (error) {
-    stage2Output.textContent = `截图上传失败：${error.message}`;
+    stage2Output.textContent = `截图上传失败：${friendlyError(error)}`;
   }
 });
 
@@ -366,7 +398,7 @@ document.querySelector("#find-match").addEventListener("click", async () => {
     });
     renderMatch(match);
   } catch (error) {
-    stage2Output.textContent = `候选视频匹配失败：${error.message}`;
+    stage2Output.textContent = `候选视频匹配失败：${friendlyError(error)}`;
   }
 });
 
@@ -388,7 +420,7 @@ document.querySelector("#find-batch-match").addEventListener("click", async () =
     });
     renderBatchMatches(batch);
   } catch (error) {
-    stage2Output.textContent = `批量候选视频匹配失败：${error.message}`;
+    stage2Output.textContent = `批量候选视频匹配失败：${friendlyError(error)}`;
   }
 });
 
@@ -396,7 +428,40 @@ document.querySelector("#save-current-match").addEventListener("click", async ()
   try {
     await saveCurrentMatch();
   } catch (error) {
-    stage2Output.textContent = `收藏匹配帧失败：${error.message}`;
+    stage2Output.textContent = `收藏匹配帧失败：${friendlyError(error)}`;
+  }
+});
+
+if (screenshotDropzone) {
+  ["dragenter", "dragover"].forEach((eventName) => {
+    screenshotDropzone.addEventListener(eventName, (event) => {
+      event.preventDefault();
+      screenshotDropzone.classList.add("is-dragover");
+    });
+  });
+  ["dragleave", "drop"].forEach((eventName) => {
+    screenshotDropzone.addEventListener(eventName, () => {
+      screenshotDropzone.classList.remove("is-dragover");
+    });
+  });
+  screenshotDropzone.addEventListener("drop", async (event) => {
+    event.preventDefault();
+    const file = Array.from(event.dataTransfer?.files || []).find(isSupportedImageFile);
+    try {
+      await analyzeUploadedFile(file, "拖入的截图");
+    } catch (error) {
+      stage2Output.textContent = `截图上传失败：${friendlyError(error)}`;
+    }
+  });
+}
+
+document.addEventListener("paste", async (event) => {
+  const file = Array.from(event.clipboardData?.files || []).find(isSupportedImageFile);
+  if (!file) return;
+  try {
+    await analyzeUploadedFile(file, "粘贴的截图");
+  } catch (error) {
+    stage2Output.textContent = `截图上传失败：${friendlyError(error)}`;
   }
 });
 

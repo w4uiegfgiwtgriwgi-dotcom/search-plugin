@@ -35,6 +35,9 @@ textarea { width: 100%; min-height: 104px; box-sizing: border-box; border: 1px s
 .path-grid label { display: grid; gap: 6px; font-size: 13px; color: #48525e; }
 .path-grid .wide-field { grid-column: 1 / -1; }
 .path-grid textarea { min-height: 76px; }
+.dropzone { min-height: 72px; border: 1px dashed #7a8694; border-radius: 8px; display: grid; align-content: center; gap: 4px; padding: 12px; color: #48525e; background: #f8fafc; box-sizing: border-box; }
+.dropzone span { font-size: 12px; color: #5e6a75; }
+.dropzone.is-dragover { border-color: #1f6feb; background: #eef6ff; color: #174ea6; }
 .number-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 12px; }
 .number-grid label { display: grid; gap: 6px; font-size: 13px; color: #48525e; }
 .panel h2 { font-size: 16px; margin: 0 0 12px; }

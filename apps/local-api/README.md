@@ -23,3 +23,15 @@ $env:PYTHONPATH='apps/local-api'
 ```powershell
 Invoke-RestMethod -Method Post -Uri http://127.0.0.1:17860/api/search/tasks -ContentType 'application/json' -Body '{"query":"极端高温废墟旧空调"}'
 ```
+
+## 阶段2截图反查接口
+
+当前先使用 Mock OCR 和 Mock 视觉向量，但 pHash、缩略图、候选视频抽帧和时间点匹配会真实执行。
+
+```powershell
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:17860/api/assets/analyze-image -ContentType 'application/json' -Body '{"image_path":"E:\\搜索插件\\tests\\fixtures\\stage2\\stage2-air-query.png"}'
+```
+
+```powershell
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:17860/api/matches/find -ContentType 'application/json' -Body '{"query_asset_id":1,"candidate_video_path":"E:\\搜索插件\\tests\\fixtures\\stage2\\stage2-self-made-testsrc.mp4","fps":1,"threshold":0.75}'
+```

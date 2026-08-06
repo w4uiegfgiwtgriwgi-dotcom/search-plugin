@@ -3,8 +3,10 @@ const statusEl = document.querySelector("#status");
 const resultsEl = document.querySelector("#results");
 const projectSelect = document.querySelector("#project-select");
 const apiPill = document.querySelector("#api-pill");
+const stage2Output = document.querySelector("#stage2-output");
 let currentTaskId = null;
 let currentResults = [];
+let currentAssetId = null;
 
 function renderApiStatus(status) {
   if (!apiPill) return;
@@ -127,6 +129,57 @@ document.querySelectorAll("button[data-export]").forEach((button) => {
     const fmt = button.dataset.export;
     window.open(`${apiBase}/api/exports/${currentTaskId}.${fmt}`, "_blank");
   });
+});
+
+document.querySelector("#analyze-image").addEventListener("click", async () => {
+  const imagePath = document.querySelector("#image-path").value.trim();
+  if (!imagePath) {
+    stage2Output.textContent = "请先填写截图路径";
+    return;
+  }
+  try {
+    const asset = await api("/api/assets/analyze-image", {
+      method: "POST",
+      body: JSON.stringify({ image_path: imagePath })
+    });
+    currentAssetId = asset.id;
+    stage2Output.textContent = JSON.stringify({
+      asset_id: asset.id,
+      size: `${asset.width || "?"}x${asset.height || "?"}`,
+      ocr_text: asset.ocr_text,
+      phash: asset.perceptual_hash,
+      thumbnail_path: asset.thumbnail_path
+    }, null, 2);
+  } catch (error) {
+    stage2Output.textContent = `截图分析失败：${error.message}`;
+  }
+});
+
+document.querySelector("#find-match").addEventListener("click", async () => {
+  const videoPath = document.querySelector("#video-path").value.trim();
+  if (!currentAssetId) {
+    stage2Output.textContent = "请先分析截图";
+    return;
+  }
+  if (!videoPath) {
+    stage2Output.textContent = "请先填写候选视频路径";
+    return;
+  }
+  try {
+    const match = await api("/api/matches/find", {
+      method: "POST",
+      body: JSON.stringify({ query_asset_id: currentAssetId, candidate_video_path: videoPath, fps: 1, threshold: 0.75 })
+    });
+    stage2Output.textContent = JSON.stringify({
+      match_type: match.match_type,
+      timestamp_ms: match.timestamp_ms,
+      combined_score: match.combined_score,
+      phash_score: match.phash_score,
+      local_frame_path: match.local_frame_path
+    }, null, 2);
+  } catch (error) {
+    stage2Output.textContent = `候选视频匹配失败：${error.message}`;
+  }
 });
 
 refreshProjects().catch(() => {

@@ -35,6 +35,10 @@ class ApiHandler(BaseHTTPRequestHandler):
                 task_id, fmt = parts[2].split(".", 1)
                 ctype = {"json": "application/json; charset=utf-8", "csv": "text/csv; charset=utf-8", "md": "text/markdown; charset=utf-8"}.get(fmt, "text/plain; charset=utf-8")
                 return _send(self, 200, self.service.export_results(int(task_id), fmt), ctype)
+            if len(parts) == 3 and parts[:2] == ["api", "assets"]:
+                return _send(self, 200, self.service.get_asset(int(parts[2])))
+            if len(parts) == 3 and parts[:2] == ["api", "matches"]:
+                return _send(self, 200, self.service.get_match(int(parts[2])))
             return _send(self, 404, {"error": "not found"})
         except Exception as exc:
             return _send(self, 500, {"error": str(exc)})
@@ -46,6 +50,8 @@ class ApiHandler(BaseHTTPRequestHandler):
             if path == "/api/search/tasks": return _send(self, 201, self.service.create_search_task(body.get("query", ""), body.get("platforms"), int(body.get("max_results_per_platform", 10))))
             if path == "/api/projects": return _send(self, 201, self.service.create_project(body.get("name", "未命名项目"), body.get("note", "")))
             if len(parts) == 4 and parts[:2] == ["api", "projects"] and parts[3] == "materials": return _send(self, 201, self.service.add_material(int(parts[2]), int(body["result_id"]), body.get("tags"), body.get("note", ""), body.get("selected_timestamp_ms")))
+            if path == "/api/assets/analyze-image": return _send(self, 201, self.service.analyze_image(body["image_path"]))
+            if path == "/api/matches/find": return _send(self, 201, self.service.find_frame_match(int(body["query_asset_id"]), body["candidate_video_path"], float(body.get("fps", 1.0)), float(body.get("threshold", 0.78))))
             return _send(self, 404, {"error": "not found"})
         except Exception as exc:
             return _send(self, 500, {"error": str(exc)})

@@ -40,6 +40,15 @@ if FastAPI:
         note: str = ""
         selected_timestamp_ms: int | None = None
 
+    class AnalyzeImageRequest(BaseModel):
+        image_path: str
+
+    class FindMatchRequest(BaseModel):
+        query_asset_id: int
+        candidate_video_path: str
+        fps: float = 1.0
+        threshold: float = 0.78
+
     @app.get("/api/platforms")
     def list_platforms():
         return service.list_platforms()
@@ -87,3 +96,31 @@ if FastAPI:
             "md": "text/markdown; charset=utf-8",
         }.get(fmt, "text/plain; charset=utf-8")
         return Response(content=body, media_type=media_type)
+
+    @app.post("/api/assets/analyze-image", status_code=201)
+    def analyze_image(request: AnalyzeImageRequest):
+        try:
+            return service.analyze_image(request.image_path)
+        except (FileNotFoundError, ValueError) as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.get("/api/assets/{asset_id}")
+    def get_asset(asset_id: int):
+        try:
+            return service.get_asset(asset_id)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    @app.post("/api/matches/find", status_code=201)
+    def find_match(request: FindMatchRequest):
+        try:
+            return service.find_frame_match(request.query_asset_id, request.candidate_video_path, request.fps, request.threshold)
+        except (FileNotFoundError, KeyError, ValueError) as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.get("/api/matches/{match_id}")
+    def get_match(match_id: int):
+        try:
+            return service.get_match(match_id)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc

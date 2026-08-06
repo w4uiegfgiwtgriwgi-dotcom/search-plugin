@@ -44,6 +44,25 @@
         </div>
       </section>
 
+      <section class="panel stage2-panel">
+        <h2>截图反查</h2>
+        <div class="path-grid">
+          <label>
+            截图路径
+            <input id="image-path" placeholder="例如 E:\搜索插件\tests\fixtures\stage2\stage2-air-query.png" />
+          </label>
+          <label>
+            候选视频路径
+            <input id="video-path" placeholder="例如 E:\搜索插件\tests\fixtures\stage2\stage2-self-made-testsrc.mp4" />
+          </label>
+        </div>
+        <div class="controls">
+          <button id="analyze-image">分析截图</button>
+          <button id="find-match">匹配候选视频</button>
+        </div>
+        <pre class="stage2-output" id="stage2-output">等待截图分析</pre>
+      </section>
+
       <section class="status" id="status">等待搜索</section>
       <section class="results" id="results"></section>
     </main>

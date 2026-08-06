@@ -60,6 +60,37 @@ CREATE TABLE IF NOT EXISTS project_materials (
   rights_status TEXT NOT NULL DEFAULT 'unknown',
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+CREATE TABLE IF NOT EXISTS media_assets (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  kind TEXT NOT NULL,
+  source_path TEXT NOT NULL,
+  mime_type TEXT NOT NULL,
+  size_bytes INTEGER NOT NULL,
+  width INTEGER,
+  height INTEGER,
+  thumbnail_path TEXT,
+  ocr_text TEXT NOT NULL DEFAULT '',
+  perceptual_hash TEXT NOT NULL,
+  embedding_model TEXT NOT NULL,
+  embedding_json TEXT NOT NULL,
+  analysis_version TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS frame_matches (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  query_asset_id INTEGER NOT NULL REFERENCES media_assets(id) ON DELETE CASCADE,
+  candidate_video_path TEXT NOT NULL,
+  timestamp_ms INTEGER NOT NULL,
+  end_timestamp_ms INTEGER,
+  match_type TEXT NOT NULL,
+  phash_score REAL NOT NULL,
+  visual_score REAL NOT NULL,
+  text_score REAL NOT NULL,
+  combined_score REAL NOT NULL,
+  local_frame_path TEXT NOT NULL,
+  evidence_json TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 """
 
 class Database:

@@ -19,6 +19,9 @@ textarea { width: 100%; min-height: 104px; box-sizing: border-box; border: 1px s
 .controls, .inline-form, .export-actions, .card-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .controls { margin-top: 12px; }
 .workspace-row { display: grid; grid-template-columns: minmax(280px, 1fr) minmax(220px, 320px); gap: 16px; margin-top: 16px; }
+.stage2-panel { margin-top: 16px; }
+.path-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.path-grid label { display: grid; gap: 6px; font-size: 13px; color: #48525e; }
 .panel h2 { font-size: 16px; margin: 0 0 12px; }
 input, select { min-height: 36px; box-sizing: border-box; border: 1px solid #b8c0ca; border-radius: 6px; padding: 7px 10px; font: inherit; }
 select { width: 100%; margin-top: 12px; }
@@ -28,5 +31,6 @@ button[data-export] { background: #2f6f4e; }
 .result-card h2 { font-size: 17px; margin: 8px 0; }
 .source, .meta { font-size: 12px; color: #5e6a75; }
 .card-actions { margin-top: 12px; justify-content: space-between; }
+.stage2-output { min-height: 96px; overflow: auto; background: #111827; color: #e5e7eb; border-radius: 6px; padding: 12px; }
 a { color: #1f6feb; }
 @media (max-width: 760px) { .workspace-row { grid-template-columns: 1fr; } }

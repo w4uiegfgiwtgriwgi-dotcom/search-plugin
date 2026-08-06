@@ -17,4 +17,5 @@ __pycache__/
 *.pyc
 .venv/
 apps/desktop/node_modules/
+tests/fixtures/stage2/
 

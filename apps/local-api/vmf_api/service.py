@@ -6,6 +6,8 @@ from pathlib import Path
 from typing import Any
 from .adapters import DEFAULT_ADAPTERS, PlatformAdapter
 from .database import Database, loads_json_fields
+from .matching import FrameMatcher
+from .media_analysis import MediaAnalyzer
 from .models import SearchOptions, SearchResult
 from .query import expand_query
 
@@ -13,6 +15,8 @@ class LocalApiService:
     def __init__(self, db_path: str | Path = "./.local-data/video-material-finder.sqlite", adapters: dict[str, PlatformAdapter] | None = None):
         self.db = Database(db_path)
         self.adapters = adapters or DEFAULT_ADAPTERS
+        self.media_analyzer = MediaAnalyzer(self.db)
+        self.frame_matcher = FrameMatcher(self.db)
     def close(self) -> None:
         self.db.close()
     def list_platforms(self) -> list[dict[str, Any]]:
@@ -90,6 +94,14 @@ class LocalApiService:
         if fmt == "md":
             return "# 搜索结果导出\n\n" + "".join(f"- [{item['title']}]({item['source_url']}) - {item['platform']}\n" for item in results)
         raise ValueError(f"unsupported export format: {fmt}")
+    def analyze_image(self, image_path: str | Path) -> dict[str, Any]:
+        return self.media_analyzer.analyze_image(image_path)
+    def get_asset(self, asset_id: int) -> dict[str, Any]:
+        return self.media_analyzer.get_asset(asset_id)
+    def find_frame_match(self, query_asset_id: int, candidate_video_path: str | Path, fps: float = 1.0, threshold: float = 0.78) -> dict[str, Any]:
+        return self.frame_matcher.find_matches(query_asset_id, candidate_video_path, fps, threshold)
+    def get_match(self, match_id: int) -> dict[str, Any]:
+        return self.frame_matcher.get_match(match_id)
     def _insert_result(self, task_id: int, result: SearchResult) -> int:
         r = result.to_record()
         return self.db.execute("""

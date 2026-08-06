@@ -100,8 +100,27 @@ class LocalApiService:
         return self.media_analyzer.analyze_uploaded_image(filename, data)
     def get_asset(self, asset_id: int) -> dict[str, Any]:
         return self.media_analyzer.get_asset(asset_id)
-    def find_frame_match(self, query_asset_id: int, candidate_video_path: str | Path, fps: float = 1.0, threshold: float = 0.78) -> dict[str, Any]:
-        return self.frame_matcher.find_matches(query_asset_id, candidate_video_path, fps, threshold)
+    def find_frame_match(
+        self,
+        query_asset_id: int,
+        candidate_video_path: str | Path,
+        fps: float = 1.0,
+        threshold: float = 0.78,
+        refine_fps: float = 4.0,
+        refine_window_ms: int = 1000,
+    ) -> dict[str, Any]:
+        return self.frame_matcher.find_matches(query_asset_id, candidate_video_path, fps, threshold, refine_fps, refine_window_ms)
+    def find_batch_frame_matches(
+        self,
+        query_asset_id: int,
+        candidate_video_paths: list[str | Path],
+        fps: float = 1.0,
+        threshold: float = 0.78,
+        refine_fps: float = 4.0,
+        refine_window_ms: int = 1000,
+        top_k: int = 10,
+    ) -> dict[str, Any]:
+        return self.frame_matcher.find_batch_matches(query_asset_id, candidate_video_paths, fps, threshold, refine_fps, refine_window_ms, top_k)
     def get_match(self, match_id: int) -> dict[str, Any]:
         return self.frame_matcher.get_match(match_id)
     def _insert_result(self, task_id: int, result: SearchResult) -> int:

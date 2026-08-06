@@ -50,6 +50,17 @@ if FastAPI:
         candidate_video_path: str
         fps: float = 1.0
         threshold: float = 0.78
+        refine_fps: float = 4.0
+        refine_window_ms: int = 1000
+
+    class FindBatchMatchRequest(BaseModel):
+        query_asset_id: int
+        candidate_video_paths: list[str]
+        fps: float = 1.0
+        threshold: float = 0.78
+        refine_fps: float = 4.0
+        refine_window_ms: int = 1000
+        top_k: int = 10
 
     @app.get("/api/platforms")
     def list_platforms():
@@ -124,7 +135,29 @@ if FastAPI:
     @app.post("/api/matches/find", status_code=201)
     def find_match(request: FindMatchRequest):
         try:
-            return service.find_frame_match(request.query_asset_id, request.candidate_video_path, request.fps, request.threshold)
+            return service.find_frame_match(
+                request.query_asset_id,
+                request.candidate_video_path,
+                request.fps,
+                request.threshold,
+                request.refine_fps,
+                request.refine_window_ms,
+            )
+        except (FileNotFoundError, KeyError, ValueError) as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.post("/api/matches/batch", status_code=201)
+    def find_batch_matches(request: FindBatchMatchRequest):
+        try:
+            return service.find_batch_frame_matches(
+                request.query_asset_id,
+                request.candidate_video_paths,
+                request.fps,
+                request.threshold,
+                request.refine_fps,
+                request.refine_window_ms,
+                request.top_k,
+            )
         except (FileNotFoundError, KeyError, ValueError) as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 

@@ -65,6 +65,34 @@ function renderAsset(asset) {
   }, null, 2);
 }
 
+function renderMatch(match) {
+  stage2Output.textContent = JSON.stringify({
+    match_type: match.match_type,
+    timestamp_ms: match.timestamp_ms,
+    end_timestamp_ms: match.end_timestamp_ms,
+    combined_score: match.combined_score,
+    phash_score: match.phash_score,
+    local_frame_path: match.local_frame_path,
+    evidence: match.evidence_json
+  }, null, 2);
+}
+
+function renderBatchMatches(batch) {
+  stage2Output.textContent = JSON.stringify({
+    candidate_count: batch.candidate_count,
+    match_count: batch.match_count,
+    error_count: batch.error_count,
+    matches: batch.matches.map((match) => ({
+      candidate_video_path: match.candidate_video_path,
+      match_type: match.match_type,
+      timestamp_ms: match.timestamp_ms,
+      combined_score: match.combined_score,
+      local_frame_path: match.local_frame_path
+    })),
+    errors: batch.errors
+  }, null, 2);
+}
+
 function renderResults(results) {
   currentResults = results;
   resultsEl.innerHTML = results.map((item) => `
@@ -201,17 +229,32 @@ document.querySelector("#find-match").addEventListener("click", async () => {
   try {
     const match = await api("/api/matches/find", {
       method: "POST",
-      body: JSON.stringify({ query_asset_id: currentAssetId, candidate_video_path: videoPath, fps: 1, threshold: 0.75 })
+      body: JSON.stringify({ query_asset_id: currentAssetId, candidate_video_path: videoPath, fps: 1, threshold: 0.75, refine_fps: 4, refine_window_ms: 1000 })
     });
-    stage2Output.textContent = JSON.stringify({
-      match_type: match.match_type,
-      timestamp_ms: match.timestamp_ms,
-      combined_score: match.combined_score,
-      phash_score: match.phash_score,
-      local_frame_path: match.local_frame_path
-    }, null, 2);
+    renderMatch(match);
   } catch (error) {
     stage2Output.textContent = `候选视频匹配失败：${error.message}`;
+  }
+});
+
+document.querySelector("#find-batch-match").addEventListener("click", async () => {
+  const paths = document.querySelector("#video-paths").value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
+  if (!currentAssetId) {
+    stage2Output.textContent = "请先分析截图";
+    return;
+  }
+  if (paths.length === 0) {
+    stage2Output.textContent = "请先填写批量候选视频路径";
+    return;
+  }
+  try {
+    const batch = await api("/api/matches/batch", {
+      method: "POST",
+      body: JSON.stringify({ query_asset_id: currentAssetId, candidate_video_paths: paths, fps: 1, threshold: 0.75, refine_fps: 4, refine_window_ms: 1000, top_k: 10 })
+    });
+    renderBatchMatches(batch);
+  } catch (error) {
+    stage2Output.textContent = `批量候选视频匹配失败：${error.message}`;
   }
 });
 

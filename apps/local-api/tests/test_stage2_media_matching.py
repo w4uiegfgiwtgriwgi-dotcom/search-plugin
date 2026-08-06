@@ -24,17 +24,25 @@ class Stage2MediaMatchingTest(unittest.TestCase):
     def setUpClass(cls):
         FIXTURE_DIR.mkdir(parents=True, exist_ok=True)
         cls.video_path = FIXTURE_DIR / "stage2-self-made-testsrc.mp4"
+        cls.decoy_video_path = FIXTURE_DIR / "stage2-decoy-solid.mp4"
         cls.query_frame_path = FIXTURE_DIR / "stage2-air-query.png"
         run_ffmpeg([
             "-f",
             "lavfi",
             "-i",
-            "testsrc=size=160x90:rate=1:duration=3",
+            "testsrc=size=160x90:rate=4:duration=3",
             str(cls.video_path),
         ])
         run_ffmpeg([
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=black:size=160x90:rate=4:duration=3",
+            str(cls.decoy_video_path),
+        ])
+        run_ffmpeg([
             "-ss",
-            "1",
+            "1.25",
             "-i",
             str(cls.video_path),
             "-frames:v",
@@ -83,8 +91,10 @@ class Stage2MediaMatchingTest(unittest.TestCase):
         match = self.service.find_frame_match(asset["id"], FIXTURE_DIR / "stage2-self-made-testsrc.mp4", fps=1.0, threshold=0.75)
         self.assertIn(match["match_type"], {"same_frame", "visually_similar"})
         self.assertGreaterEqual(match["combined_score"], 0.75)
+        self.assertLessEqual(abs(match["timestamp_ms"] - 1250), 250)
         self.assertTrue(Path(match["local_frame_path"]).exists())
         self.assertEqual(match["evidence_json"]["frame_count"], 3)
+        self.assertGreater(match["evidence_json"]["refined_frame_count"], 0)
 
     def test_uploaded_image_is_saved_and_analyzed(self):
         payload = self.query_frame_path.read_bytes()
@@ -114,6 +124,24 @@ class Stage2MediaMatchingTest(unittest.TestCase):
                 self.assertIn(match["match_type"], {"same_frame", "visually_similar"})
                 self.assertGreaterEqual(match["combined_score"], ROBUSTNESS_THRESHOLD)
                 self.assertTrue(Path(match["local_frame_path"]).exists())
+
+    def test_batch_matching_sorts_matches_and_keeps_errors(self):
+        asset = self.service.analyze_image(self.query_frame_path)
+        batch = self.service.find_batch_frame_matches(
+            asset["id"],
+            [str(self.decoy_video_path), str(self.video_path), str(FIXTURE_DIR / "missing.mp4")],
+            fps=1.0,
+            threshold=ROBUSTNESS_THRESHOLD,
+            refine_fps=4.0,
+            top_k=5,
+        )
+
+        self.assertEqual(batch["candidate_count"], 3)
+        self.assertEqual(batch["match_count"], 2)
+        self.assertEqual(batch["error_count"], 1)
+        self.assertEqual(Path(batch["matches"][0]["candidate_video_path"]), self.video_path.resolve())
+        self.assertGreaterEqual(batch["matches"][0]["combined_score"], batch["matches"][1]["combined_score"])
+        self.assertIn("missing.mp4", batch["errors"][0]["candidate_video_path"])
 
 
 if __name__ == "__main__":

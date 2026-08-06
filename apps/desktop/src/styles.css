@@ -22,6 +22,8 @@ textarea { width: 100%; min-height: 104px; box-sizing: border-box; border: 1px s
 .stage2-panel { margin-top: 16px; }
 .path-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
 .path-grid label { display: grid; gap: 6px; font-size: 13px; color: #48525e; }
+.path-grid .wide-field { grid-column: 1 / -1; }
+.path-grid textarea { min-height: 76px; }
 .panel h2 { font-size: 16px; margin: 0 0 12px; }
 input, select { min-height: 36px; box-sizing: border-box; border: 1px solid #b8c0ca; border-radius: 6px; padding: 7px 10px; font: inherit; }
 select { width: 100%; margin-top: 12px; }

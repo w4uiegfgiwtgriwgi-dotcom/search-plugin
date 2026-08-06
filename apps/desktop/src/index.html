@@ -59,11 +59,16 @@
             候选视频路径
             <input id="video-path" placeholder="例如 E:\搜索插件\tests\fixtures\stage2\stage2-self-made-testsrc.mp4" />
           </label>
+          <label class="wide-field">
+            批量候选视频路径
+            <textarea id="video-paths" placeholder="每行一个候选视频路径"></textarea>
+          </label>
         </div>
         <div class="controls">
           <button id="analyze-image">分析截图</button>
           <button id="upload-image">上传并分析截图</button>
           <button id="find-match">匹配候选视频</button>
+          <button id="find-batch-match">批量匹配候选视频</button>
         </div>
         <pre class="stage2-output" id="stage2-output">等待截图分析</pre>
       </section>

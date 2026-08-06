@@ -107,6 +107,20 @@ class Stage2MediaMatchingTest(unittest.TestCase):
         self.assertEqual(asset["kind"], "query_image")
         self.assertEqual(asset["size_bytes"], len(payload))
 
+    def test_batch_uploaded_images_keep_successes_and_errors(self):
+        payload = self.query_frame_path.read_bytes()
+        batch = self.service.analyze_uploaded_images([
+            ("first.png", payload),
+            ("second.png", payload),
+            ("bad.png", b"not a real image"),
+        ])
+
+        self.assertEqual(batch["upload_count"], 3)
+        self.assertEqual(batch["asset_count"], 2)
+        self.assertEqual(batch["error_count"], 1)
+        self.assertEqual(len(batch["assets"]), 2)
+        self.assertIn("bad.png", batch["errors"][0]["filename"])
+
     def test_uploaded_image_rejects_bad_inputs(self):
         with self.assertRaises(ValueError):
             self.service.analyze_uploaded_image("empty.png", b"")

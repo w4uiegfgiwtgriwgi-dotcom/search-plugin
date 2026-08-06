@@ -165,6 +165,14 @@ if FastAPI:
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+    @app.post("/api/assets/upload-images", status_code=201)
+    async def upload_images(files: list[UploadFile] = File(...)):
+        try:
+            uploads = [(file.filename or "upload.png", await file.read()) for file in files]
+            return service.analyze_uploaded_images(uploads)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
     @app.get("/api/assets/{asset_id}")
     def get_asset(asset_id: int):
         try:

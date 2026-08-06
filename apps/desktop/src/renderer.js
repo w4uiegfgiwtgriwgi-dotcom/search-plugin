@@ -76,23 +76,57 @@ async function uploadImage(file) {
   return response.json();
 }
 
+async function uploadImages(files) {
+  const body = new FormData();
+  files.forEach((file) => body.append("files", file));
+  const response = await fetch(`${apiBase}/api/assets/upload-images`, {
+    method: "POST",
+    body
+  });
+  if (!response.ok) {
+    throw new Error(await errorMessageFromResponse(response));
+  }
+  return response.json();
+}
+
 function isSupportedImageFile(file) {
   const suffix = (file.name || "").toLowerCase().split(".").pop();
   return file.type.startsWith("image/") || ["png", "jpg", "jpeg", "webp"].includes(suffix);
 }
 
-async function analyzeUploadedFile(file, label = "截图") {
-  if (!file) {
-    stage2Output.textContent = "请先选择一张截图";
+function renderBatchAssets(batch) {
+  currentAssetId = batch.assets[0]?.id || null;
+  currentMatch = null;
+  stage2Output.textContent = JSON.stringify({
+    upload_count: batch.upload_count,
+    asset_count: batch.asset_count,
+    error_count: batch.error_count,
+    current_asset_id: currentAssetId,
+    assets: batch.assets.map((asset) => ({
+      asset_id: asset.id,
+      source_path: asset.source_path,
+      size: `${asset.width || "?"}x${asset.height || "?"}`,
+      ocr_text: asset.ocr_text,
+      thumbnail_path: asset.thumbnail_path
+    })),
+    errors: batch.errors
+  }, null, 2);
+}
+
+async function analyzeUploadedFiles(files, label = "截图") {
+  const images = Array.from(files || []).filter(isSupportedImageFile);
+  if (images.length === 0) {
+    stage2Output.textContent = "请先选择一张 PNG/JPG/WebP 截图";
     return;
   }
-  if (!isSupportedImageFile(file)) {
-    stage2Output.textContent = "仅支持 PNG/JPG/WebP 截图";
-    return;
+  stage2Output.textContent = `${label}上传分析中，共 ${images.length} 张`;
+  if (images.length === 1) {
+    const asset = await uploadImage(images[0]);
+    renderAsset(asset);
+  } else {
+    const batch = await uploadImages(images);
+    renderBatchAssets(batch);
   }
-  stage2Output.textContent = `${label}上传分析中`;
-  const asset = await uploadImage(file);
-  renderAsset(asset);
 }
 
 function renderAsset(asset) {
@@ -372,9 +406,9 @@ document.querySelector("#analyze-image").addEventListener("click", async () => {
 });
 
 document.querySelector("#upload-image").addEventListener("click", async () => {
-  const file = document.querySelector("#image-file").files[0];
+  const files = document.querySelector("#image-file").files;
   try {
-    await analyzeUploadedFile(file, "选择的截图");
+    await analyzeUploadedFiles(files, "选择的截图");
   } catch (error) {
     stage2Output.textContent = `截图上传失败：${friendlyError(error)}`;
   }
@@ -446,9 +480,9 @@ if (screenshotDropzone) {
   });
   screenshotDropzone.addEventListener("drop", async (event) => {
     event.preventDefault();
-    const file = Array.from(event.dataTransfer?.files || []).find(isSupportedImageFile);
+    const files = Array.from(event.dataTransfer?.files || []);
     try {
-      await analyzeUploadedFile(file, "拖入的截图");
+      await analyzeUploadedFiles(files, "拖入的截图");
     } catch (error) {
       stage2Output.textContent = `截图上传失败：${friendlyError(error)}`;
     }
@@ -456,10 +490,10 @@ if (screenshotDropzone) {
 }
 
 document.addEventListener("paste", async (event) => {
-  const file = Array.from(event.clipboardData?.files || []).find(isSupportedImageFile);
-  if (!file) return;
+  const files = Array.from(event.clipboardData?.files || []).filter(isSupportedImageFile);
+  if (files.length === 0) return;
   try {
-    await analyzeUploadedFile(file, "粘贴的截图");
+    await analyzeUploadedFiles(files, "粘贴的截图");
   } catch (error) {
     stage2Output.textContent = `截图上传失败：${friendlyError(error)}`;
   }

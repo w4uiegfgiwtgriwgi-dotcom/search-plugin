@@ -280,6 +280,25 @@ class LocalApiService:
         return self.media_analyzer.analyze_image(image_path)
     def analyze_uploaded_image(self, filename: str, data: bytes) -> dict[str, Any]:
         return self.media_analyzer.analyze_uploaded_image(filename, data)
+    def analyze_uploaded_images(self, uploads: list[tuple[str, bytes]]) -> dict[str, Any]:
+        if not uploads:
+            raise ValueError("请至少上传一张截图")
+        if len(uploads) > 20:
+            raise ValueError("阶段2单次最多上传 20 张截图")
+        assets: list[dict[str, Any]] = []
+        errors: list[dict[str, str]] = []
+        for filename, data in uploads:
+            try:
+                assets.append(self.analyze_uploaded_image(filename, data))
+            except ValueError as exc:
+                errors.append({"filename": filename, "error": str(exc)})
+        return {
+            "upload_count": len(uploads),
+            "asset_count": len(assets),
+            "error_count": len(errors),
+            "assets": assets,
+            "errors": errors,
+        }
     def get_asset(self, asset_id: int) -> dict[str, Any]:
         return self.media_analyzer.get_asset(asset_id)
     def find_frame_match(

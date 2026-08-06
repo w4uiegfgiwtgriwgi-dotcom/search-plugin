@@ -13,6 +13,7 @@
 - 桌面端依赖已安装并锁定，生成 `apps/desktop/package-lock.json`。
 - 两个平台适配器：`web-search` 录制样本、`bilibili` Mock 样本。
 - 桌面端阶段1壳补强：搜索、项目创建、收藏到项目、CSV/JSON/Markdown 导出入口。
+- Electron 主进程补强：启动时检测本地 API，必要时自动拉起 FastAPI，退出时清理自己拉起的 API 进程。
 - Chrome MV3 扩展骨架：用户主动点击后读取当前页面标题和 URL。
 - 运行说明：`docs/stage1-runbook.md`。
 
@@ -31,7 +32,7 @@
 
 - 真实 B站或普通网页联网搜索未启用，阶段1继续使用低风险样本适配器。
 - 还没有实现登录态、浏览器辅助搜索、真实收藏当前页面到本地 API。
-- 桌面端已安装 Electron，但未做生产打包，也没有内置自动拉起 API 的完整生命周期管理。
+- 桌面端已安装 Electron，并已实现基础 API 自动检测和拉起；但未做生产打包，也未覆盖 Windows 安装包场景。
 
 ## 测试结果
 
@@ -41,6 +42,8 @@
 - FastAPI 临时端口烟测：通过。平台数 2，搜索任务 `completed`，结果数 3。
 - FastAPI 17860 运行中烟测：通过。搜索返回 3 条结果，创建项目成功，收藏结果成功，CSV 导出包含 `source_url`。
 - 桌面端和扩展 JS 语法检查：通过。
+- Electron 自动拉起逻辑检查：通过。`api-process.cjs` 可检测到当前 FastAPI 服务，并在服务已运行时复用已有服务。
+- Electron GUI smoke：暂未通过。原因是 `electron` npm 包已安装，但 Electron Windows 二进制未下载成功，`node_modules/electron/dist/electron.exe` 不存在；重复运行安装脚本 5 分钟超时。
 
 ## 当前运行状态
 
@@ -51,12 +54,13 @@
 ## 已知风险
 
 - 当前平台结果来自录制样本和 Mock，不代表真实平台搜索能力已经完成。
-- 依赖版本已锁定，但 Electron/React 仍未做 Windows 打包验证。
+- 依赖版本已锁定，但 Electron 二进制下载在当前网络环境下未完成，因此 Electron GUI 启动和 Windows 打包仍未验证。
 - 当前 FFmpeg 发行包为 gyan.dev full/essentials 系列，后续若随产品分发需继续处理 GPL/LGPL 合规策略。
 - 当前浏览器扩展只读当前页面标题和 URL，尚未写入本地素材库。
 
 ## 下一步建议
 
-- 在阶段1内继续做“桌面端启动 API 生命周期管理”，让 Electron 打开时自动拉起/检测本地 API。
+- 在阶段1内继续做桌面端真实交互 QA 和打包前检查。
+- 先解决 Electron 二进制下载问题，可重试 `node node_modules/electron/install.js` 或配置可用镜像源后再运行 `npm run smoke`。
 - 在获得明确允许后，做一次低频公开网页搜索联网验证。
 - 再进入阶段2前，确认截图上传、OCR、pHash、视觉向量真实 Provider 的安装策略。

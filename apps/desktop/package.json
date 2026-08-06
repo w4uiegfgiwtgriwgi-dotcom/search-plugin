@@ -4,7 +4,8 @@
   "private": true,
   "main": "main.cjs",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "smoke": "set VMF_ELECTRON_SMOKE=1&& electron ."
   },
   "dependencies": {
     "@vitejs/plugin-react": "6.0.5",

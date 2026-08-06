@@ -7,8 +7,12 @@
 body { margin: 0; }
 .shell { max-width: 1120px; margin: 0 auto; padding: 24px; }
 .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.toolbar-status { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 h1 { font-size: 24px; margin: 0; }
 .badge { border: 1px solid #7a8694; border-radius: 6px; padding: 4px 8px; font-size: 13px; }
+.api-pill { border-radius: 999px; padding: 5px 10px; font-size: 13px; background: #fff4cc; color: #6a4b00; border: 1px solid #d6b85a; }
+.api-pill[data-status="ready"] { background: #dff7e8; color: #175c32; border-color: #7cc695; }
+.api-pill[data-status="failed"] { background: #ffe2e2; color: #8a1f1f; border-color: #e49a9a; }
 .search-panel, .status, .result-card, .panel { background: #fff; border: 1px solid #d7dde3; border-radius: 8px; padding: 16px; }
 .search-panel, .status { margin-top: 16px; }
 textarea { width: 100%; min-height: 104px; box-sizing: border-box; border: 1px solid #b8c0ca; border-radius: 6px; padding: 12px; resize: vertical; font: inherit; }

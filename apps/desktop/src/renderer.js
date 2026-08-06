@@ -2,8 +2,23 @@
 const statusEl = document.querySelector("#status");
 const resultsEl = document.querySelector("#results");
 const projectSelect = document.querySelector("#project-select");
+const apiPill = document.querySelector("#api-pill");
 let currentTaskId = null;
 let currentResults = [];
+
+function renderApiStatus(status) {
+  if (!apiPill) return;
+  const labels = {
+    starting: "API 启动中",
+    ready: status.owned ? "API 已自动启动" : "API 已连接",
+    failed: "API 启动失败",
+  };
+  apiPill.textContent = labels[status.status] || "API 状态未知";
+  apiPill.dataset.status = status.status || "unknown";
+  if (status.error) {
+    apiPill.title = status.error;
+  }
+}
 
 function selectedPlatforms() {
   return Array.from(document.querySelectorAll("input[type='checkbox']:checked")).map((item) => item.value);
@@ -117,3 +132,8 @@ document.querySelectorAll("button[data-export]").forEach((button) => {
 refreshProjects().catch(() => {
   statusEl.textContent = "本地 API 未启动，项目列表暂不可用";
 });
+
+if (window.vmf) {
+  window.vmf.getApiStatus().then(renderApiStatus).catch(() => renderApiStatus({ status: "failed" }));
+  window.vmf.onApiStatus(renderApiStatus);
+}

@@ -5,6 +5,7 @@
 已支持：
 
 - 调用本地 API 创建搜索任务。
+- Electron 启动时检查本地 API，必要时自动拉起 FastAPI。
 - 展示搜索结果。
 - 创建项目并把结果收藏到项目。
 - 按当前任务导出 CSV、JSON、Markdown。
@@ -15,4 +16,10 @@ Electron 入口已预留在 `main.cjs`。安装依赖后可运行：
 cd apps/desktop
 npm install
 npm start
+```
+
+烟测启动：
+
+```powershell
+npm run smoke
 ```

@@ -98,6 +98,49 @@ class LocalApiService:
             VALUES (?, ?, ?, ?, ?, ?)
         """, (project_id, match_id, match["timestamp_ms"], note, json.dumps(tags or [], ensure_ascii=False), review_status)).lastrowid
         return self.get_frame_match_material(material_id)
+    def add_frame_match_materials(
+        self,
+        project_id: int,
+        match_ids: list[int],
+        min_score: float = 0.75,
+        tags: list[str] | None = None,
+        note: str = "",
+        review_status: str = "confirmed",
+    ) -> dict[str, Any]:
+        self.get_project(project_id)
+        if not match_ids:
+            raise ValueError("请至少提供一个匹配结果")
+        if len(match_ids) > 100:
+            raise ValueError("单次最多收藏 100 个匹配结果")
+        saved: list[dict[str, Any]] = []
+        skipped: list[dict[str, Any]] = []
+        errors: list[dict[str, str]] = []
+        for match_id in match_ids:
+            try:
+                match = self.get_match(int(match_id))
+                if float(match["combined_score"]) < min_score:
+                    skipped.append({"match_id": int(match_id), "reason": "below_min_score", "combined_score": match["combined_score"]})
+                    continue
+                existing = self.db.query_one(
+                    "SELECT id FROM project_frame_matches WHERE project_id = ? AND match_id = ?",
+                    (project_id, int(match_id)),
+                )
+                if existing:
+                    skipped.append({"match_id": int(match_id), "reason": "already_saved", "material_id": existing["id"]})
+                    continue
+                saved.append(self.add_frame_match_material(project_id, int(match_id), tags, note, review_status))
+            except (KeyError, ValueError) as exc:
+                errors.append({"match_id": str(match_id), "error": str(exc)})
+        return {
+            "project_id": project_id,
+            "requested_count": len(match_ids),
+            "saved_count": len(saved),
+            "skipped_count": len(skipped),
+            "error_count": len(errors),
+            "saved": saved,
+            "skipped": skipped,
+            "errors": errors,
+        }
     def list_frame_match_materials(self, project_id: int) -> list[dict[str, Any]]:
         rows = self.db.query_all("""
             SELECT

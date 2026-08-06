@@ -176,6 +176,36 @@ class Stage2MediaMatchingTest(unittest.TestCase):
         self.assertEqual({batch["query_asset_id"] for batch in result["batches"]}, {first["id"], second["id"]})
         self.assertGreaterEqual(len(result["best_matches"]), 2)
 
+    def test_save_high_score_matches_to_project_without_duplicates(self):
+        project = self.service.create_project("批量收藏项目")
+        first = self.service.analyze_image(self.query_frame_path)
+        second = self.service.analyze_image(self.variant_paths["tone"])
+        result = self.service.find_multi_asset_frame_matches(
+            [first["id"], second["id"]],
+            [str(self.video_path), str(self.decoy_video_path)],
+            fps=1.0,
+            threshold=ROBUSTNESS_THRESHOLD,
+            refine_fps=4.0,
+            top_k=5,
+        )
+        match_ids = [match["id"] for match in result["best_matches"]]
+
+        saved = self.service.add_frame_match_materials(
+            project["id"],
+            match_ids,
+            min_score=ROBUSTNESS_THRESHOLD,
+            tags=["批量收藏"],
+            note="高分匹配",
+        )
+        duplicate = self.service.add_frame_match_materials(project["id"], match_ids, min_score=ROBUSTNESS_THRESHOLD)
+        too_high = self.service.add_frame_match_materials(project["id"], match_ids, min_score=1.1)
+
+        self.assertGreaterEqual(saved["saved_count"], 2)
+        self.assertEqual(duplicate["saved_count"], 0)
+        self.assertEqual(duplicate["skipped_count"], len(match_ids))
+        self.assertEqual(too_high["saved_count"], 0)
+        self.assertEqual(len(self.service.list_frame_match_materials(project["id"])), saved["saved_count"])
+
     def test_save_frame_match_material_to_project(self):
         project = self.service.create_project("截图反查项目")
         asset = self.service.analyze_image(self.query_frame_path)

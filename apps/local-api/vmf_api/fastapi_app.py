@@ -48,6 +48,13 @@ if FastAPI:
         note: str = ""
         review_status: str = "confirmed"
 
+    class BatchFrameMatchMaterialRequest(BaseModel):
+        match_ids: list[int]
+        min_score: float = 0.75
+        tags: list[str] = Field(default_factory=list)
+        note: str = ""
+        review_status: str = "confirmed"
+
     class AnalyzeImageRequest(BaseModel):
         image_path: str
 
@@ -136,6 +143,20 @@ if FastAPI:
     def add_frame_match_material(project_id: int, request: FrameMatchMaterialRequest):
         try:
             return service.add_frame_match_material(project_id, request.match_id, request.tags, request.note, request.review_status)
+        except (KeyError, ValueError) as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.post("/api/projects/{project_id}/frame-matches/batch", status_code=201)
+    def add_frame_match_materials(project_id: int, request: BatchFrameMatchMaterialRequest):
+        try:
+            return service.add_frame_match_materials(
+                project_id,
+                request.match_ids,
+                request.min_score,
+                request.tags,
+                request.note,
+                request.review_status,
+            )
         except (KeyError, ValueError) as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 

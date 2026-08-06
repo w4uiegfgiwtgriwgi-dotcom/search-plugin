@@ -14,6 +14,7 @@ let currentResults = [];
 let currentAssetId = null;
 let currentAssetIds = [];
 let currentMatch = null;
+let currentBulkMatches = [];
 
 function renderApiStatus(status) {
   if (!apiPill) return;
@@ -99,6 +100,7 @@ function renderBatchAssets(batch) {
   currentAssetIds = batch.assets.map((asset) => asset.id);
   currentAssetId = currentAssetIds[0] || null;
   currentMatch = null;
+  currentBulkMatches = [];
   stage2Output.textContent = JSON.stringify({
     upload_count: batch.upload_count,
     asset_count: batch.asset_count,
@@ -135,6 +137,7 @@ function renderAsset(asset) {
   currentAssetId = asset.id;
   currentAssetIds = [asset.id];
   currentMatch = null;
+  currentBulkMatches = [];
   stage2Output.textContent = JSON.stringify({
     asset_id: asset.id,
     source_path: asset.source_path,
@@ -160,6 +163,7 @@ function readMatchOptions() {
 
 function renderMatch(match) {
   currentMatch = match;
+  currentBulkMatches = [match];
   stage2Output.textContent = JSON.stringify({
     match_id: match.id,
     match_type: match.match_type,
@@ -174,6 +178,7 @@ function renderMatch(match) {
 
 function renderBatchMatches(batch) {
   currentMatch = batch.matches[0] || null;
+  currentBulkMatches = batch.matches;
   stage2Output.textContent = JSON.stringify({
     candidate_count: batch.candidate_count,
     match_count: batch.match_count,
@@ -192,6 +197,7 @@ function renderBatchMatches(batch) {
 
 function renderMultiAssetMatches(result) {
   currentMatch = result.best_matches[0] || null;
+  currentBulkMatches = result.best_matches;
   stage2Output.textContent = JSON.stringify({
     asset_count: result.asset_count,
     batch_count: result.batch_count,
@@ -340,6 +346,37 @@ async function saveCurrentMatch() {
     timestamp_ms: material.timestamp_ms,
     candidate_video_path: material.candidate_video_path,
     local_frame_path: material.local_frame_path
+  }, null, 2);
+  await refreshLibrary().catch(() => {});
+}
+
+async function saveHighScoreMatches() {
+  const threshold = readMatchOptions().threshold;
+  const matchIds = currentBulkMatches.filter((match) => Number(match.combined_score) >= threshold).map((match) => match.id);
+  if (matchIds.length === 0) {
+    stage2Output.textContent = `当前没有达到阈值 ${threshold} 的匹配结果`;
+    return;
+  }
+  const projectId = projectSelect.value || (await ensureProject()).id;
+  const result = await api(`/api/projects/${projectId}/frame-matches/batch`, {
+    method: "POST",
+    body: JSON.stringify({
+      match_ids: matchIds,
+      min_score: threshold,
+      tags: ["阶段2", "高分匹配"],
+      note: `批量高分匹配收藏，阈值 ${threshold}`,
+      review_status: "confirmed"
+    })
+  });
+  stage2Output.textContent = JSON.stringify({
+    saved: true,
+    project_id: projectId,
+    requested_count: result.requested_count,
+    saved_count: result.saved_count,
+    skipped_count: result.skipped_count,
+    error_count: result.error_count,
+    skipped: result.skipped,
+    errors: result.errors
   }, null, 2);
   await refreshLibrary().catch(() => {});
 }
@@ -518,6 +555,14 @@ document.querySelector("#save-current-match").addEventListener("click", async ()
     await saveCurrentMatch();
   } catch (error) {
     stage2Output.textContent = `收藏匹配帧失败：${friendlyError(error)}`;
+  }
+});
+
+document.querySelector("#save-high-score-matches").addEventListener("click", async () => {
+  try {
+    await saveHighScoreMatches();
+  } catch (error) {
+    stage2Output.textContent = `收藏高分匹配失败：${friendlyError(error)}`;
   }
 });
 

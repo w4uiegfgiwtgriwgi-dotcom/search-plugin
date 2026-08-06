@@ -104,11 +104,24 @@ if FastAPI:
         return service.list_materials(project_id)
 
     @app.get("/api/projects/{project_id}/library")
-    def list_project_library(project_id: int):
+    def list_project_library(project_id: int, source_type: str = "all", review_status: str = "all", sort_by: str = "created_desc"):
         try:
-            return service.list_project_library(project_id)
-        except KeyError as exc:
-            raise HTTPException(status_code=404, detail=str(exc)) from exc
+            return service.list_project_library(project_id, source_type, review_status, sort_by)
+        except (KeyError, ValueError) as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.get("/api/projects/{project_id}/library.{fmt}")
+    def export_project_library(project_id: int, fmt: str, source_type: str = "all", review_status: str = "all", sort_by: str = "created_desc"):
+        try:
+            body = service.export_project_library(project_id, fmt, source_type, review_status, sort_by)
+        except (KeyError, ValueError) as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        media_type = {
+            "json": "application/json; charset=utf-8",
+            "csv": "text/csv; charset=utf-8",
+            "md": "text/markdown; charset=utf-8",
+        }.get(fmt, "text/plain; charset=utf-8")
+        return Response(content=body, media_type=media_type)
 
     @app.post("/api/projects/{project_id}/frame-matches", status_code=201)
     def add_frame_match_material(project_id: int, request: FrameMatchMaterialRequest):

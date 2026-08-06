@@ -186,6 +186,19 @@ class Stage2MediaMatchingTest(unittest.TestCase):
         self.assertEqual(library["frame_match_count"], 1)
         self.assertEqual(source_types, {"search_result", "frame_match"})
 
+        frame_only = self.service.list_project_library(project["id"], source_type="frame_match")
+        score_sorted = self.service.list_project_library(project["id"], sort_by="score_desc")
+        csv_export = self.service.export_project_library(project["id"], "csv")
+        md_export = self.service.export_project_library(project["id"], "md", source_type="frame_match")
+        json_export = self.service.export_project_library(project["id"], "json")
+
+        self.assertEqual(frame_only["total_count"], 1)
+        self.assertEqual(frame_only["items"][0]["source_type"], "frame_match")
+        self.assertEqual(score_sorted["items"][0]["source_type"], "frame_match")
+        self.assertIn("source_type", csv_export)
+        self.assertIn("frame_match", md_export)
+        self.assertIn('"total_count": 2', json_export)
+
 
 if __name__ == "__main__":
     unittest.main()

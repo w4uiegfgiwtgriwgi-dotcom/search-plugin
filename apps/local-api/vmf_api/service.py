@@ -139,7 +139,13 @@ class LocalApiService:
         if not row:
             raise KeyError(f"frame match material not found: {material_id}")
         return loads_json_fields(row, ["tags_json"])
-    def list_project_library(self, project_id: int) -> dict[str, Any]:
+    def list_project_library(
+        self,
+        project_id: int,
+        source_type: str | None = None,
+        review_status: str | None = None,
+        sort_by: str = "created_desc",
+    ) -> dict[str, Any]:
         self.get_project(project_id)
         search_materials = [
             {
@@ -183,14 +189,80 @@ class LocalApiService:
             }
             for item in self.list_frame_match_materials(project_id)
         ]
-        items = sorted([*search_materials, *frame_materials], key=lambda item: item["created_at"], reverse=True)
+        items = [*search_materials, *frame_materials]
+        if source_type and source_type != "all":
+            if source_type not in {"search_result", "frame_match"}:
+                raise ValueError("source_type 只能是 all/search_result/frame_match")
+            items = [item for item in items if item["source_type"] == source_type]
+        if review_status and review_status != "all":
+            items = [item for item in items if item["review_status"] == review_status]
+        if sort_by == "created_asc":
+            items = sorted(items, key=lambda item: item["created_at"])
+        elif sort_by == "score_desc":
+            items = sorted(items, key=lambda item: item.get("combined_score") or -1, reverse=True)
+        elif sort_by == "title_asc":
+            items = sorted(items, key=lambda item: item["title"])
+        elif sort_by == "created_desc":
+            items = sorted(items, key=lambda item: item["created_at"], reverse=True)
+        else:
+            raise ValueError("sort_by 只能是 created_desc/created_asc/score_desc/title_asc")
         return {
             "project_id": project_id,
             "total_count": len(items),
-            "search_result_count": len(search_materials),
-            "frame_match_count": len(frame_materials),
+            "search_result_count": sum(1 for item in items if item["source_type"] == "search_result"),
+            "frame_match_count": sum(1 for item in items if item["source_type"] == "frame_match"),
             "items": items,
         }
+    def export_project_library(
+        self,
+        project_id: int,
+        fmt: str,
+        source_type: str | None = None,
+        review_status: str | None = None,
+        sort_by: str = "created_desc",
+    ) -> str:
+        library = self.list_project_library(project_id, source_type, review_status, sort_by)
+        items = library["items"]
+        if fmt == "json":
+            return json.dumps(library, ensure_ascii=False, indent=2)
+        if fmt == "csv":
+            output = io.StringIO()
+            fields = [
+                "source_type",
+                "material_id",
+                "title",
+                "platform",
+                "source_url",
+                "selected_timestamp_ms",
+                "combined_score",
+                "review_status",
+                "rights_status",
+                "tags",
+                "note",
+                "created_at",
+            ]
+            writer = csv.DictWriter(output, fieldnames=fields, extrasaction="ignore")
+            writer.writeheader()
+            for item in items:
+                copied = dict(item)
+                copied["tags"] = " / ".join(copied.get("tags") or [])
+                writer.writerow(copied)
+            return output.getvalue()
+        if fmt == "md":
+            lines = [f"# 项目 {project_id} 素材库", ""]
+            for item in items:
+                tags = " / ".join(item.get("tags") or []) or "未打标签"
+                lines.append(f"- **{item['title']}** ({item['source_type']})")
+                lines.append(f"  - 来源：{item['source_url']}")
+                lines.append(f"  - 状态：{item['review_status']}，标签：{tags}")
+                if item.get("selected_timestamp_ms") is not None:
+                    lines.append(f"  - 时间点：{item['selected_timestamp_ms']}ms")
+                if item.get("combined_score") is not None:
+                    lines.append(f"  - 匹配分：{item['combined_score']}")
+                if item.get("note"):
+                    lines.append(f"  - 备注：{item['note']}")
+            return "\n".join(lines) + "\n"
+        raise ValueError(f"unsupported export format: {fmt}")
     def export_results(self, task_id: int, fmt: str) -> str:
         results = self.list_results(task_id)
         if fmt == "json":

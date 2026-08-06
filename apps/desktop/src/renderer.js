@@ -6,6 +6,8 @@ const apiPill = document.querySelector("#api-pill");
 const stage2Output = document.querySelector("#stage2-output");
 const librarySummary = document.querySelector("#library-summary");
 const libraryList = document.querySelector("#library-list");
+const libraryFilter = document.querySelector("#library-filter");
+const librarySort = document.querySelector("#library-sort");
 let currentTaskId = null;
 let currentResults = [];
 let currentAssetId = null;
@@ -162,9 +164,27 @@ async function refreshLibrary() {
     if (libraryList) libraryList.innerHTML = "";
     return null;
   }
-  const library = await api(`/api/projects/${projectSelect.value}/library`);
+  const params = new URLSearchParams({
+    source_type: libraryFilter?.value || "all",
+    review_status: "all",
+    sort_by: librarySort?.value || "created_desc"
+  });
+  const library = await api(`/api/projects/${projectSelect.value}/library?${params.toString()}`);
   renderLibrary(library);
   return library;
+}
+
+function exportLibrary(fmt) {
+  if (!projectSelect.value) {
+    statusEl.textContent = "请先选择项目再导出素材";
+    return;
+  }
+  const params = new URLSearchParams({
+    source_type: libraryFilter?.value || "all",
+    review_status: "all",
+    sort_by: librarySort?.value || "created_desc"
+  });
+  window.open(`${apiBase}/api/projects/${projectSelect.value}/library.${fmt}?${params.toString()}`, "_blank");
 }
 
 async function refreshProjects() {
@@ -283,6 +303,18 @@ document.querySelector("#refresh-library").addEventListener("click", () => {
   refreshLibrary().catch((error) => {
     librarySummary.textContent = `项目素材刷新失败：${error.message}`;
   });
+});
+
+[libraryFilter, librarySort].forEach((control) => {
+  control?.addEventListener("change", () => {
+    refreshLibrary().catch((error) => {
+      librarySummary.textContent = `项目素材刷新失败：${error.message}`;
+    });
+  });
+});
+
+document.querySelectorAll("button[data-library-export]").forEach((button) => {
+  button.addEventListener("click", () => exportLibrary(button.dataset.libraryExport));
 });
 
 document.querySelector("#analyze-image").addEventListener("click", async () => {

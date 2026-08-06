@@ -49,6 +49,30 @@
           <h2>项目素材</h2>
           <button id="refresh-library">刷新素材</button>
         </div>
+        <div class="library-tools">
+          <label>
+            类型
+            <select id="library-filter">
+              <option value="all">全部</option>
+              <option value="search_result">搜索收藏</option>
+              <option value="frame_match">截图反查</option>
+            </select>
+          </label>
+          <label>
+            排序
+            <select id="library-sort">
+              <option value="created_desc">最新在前</option>
+              <option value="created_asc">最早在前</option>
+              <option value="score_desc">匹配分高在前</option>
+              <option value="title_asc">标题 A-Z</option>
+            </select>
+          </label>
+          <div class="export-actions">
+            <button data-library-export="csv">素材CSV</button>
+            <button data-library-export="json">素材JSON</button>
+            <button data-library-export="md">素材Markdown</button>
+          </div>
+        </div>
         <div class="library-summary" id="library-summary">等待选择项目</div>
         <div class="library-list" id="library-list"></div>
       </section>

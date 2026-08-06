@@ -21,6 +21,9 @@ textarea { width: 100%; min-height: 104px; box-sizing: border-box; border: 1px s
 .workspace-row { display: grid; grid-template-columns: minmax(280px, 1fr) minmax(220px, 320px); gap: 16px; margin-top: 16px; }
 .library-panel { margin-top: 16px; }
 .panel-title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.library-tools { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 12px; }
+.library-tools label { display: grid; gap: 6px; font-size: 13px; color: #48525e; }
+.library-tools select { margin-top: 0; }
 .library-summary { color: #5e6a75; font-size: 13px; margin-bottom: 10px; }
 .library-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
 .library-item { border: 1px solid #d7dde3; border-radius: 8px; padding: 12px; background: #f8fafc; }

@@ -55,6 +55,9 @@ if FastAPI:
         note: str = ""
         review_status: str = "confirmed"
 
+    class ReviewStatusRequest(BaseModel):
+        review_status: str
+
     class AnalyzeImageRequest(BaseModel):
         image_path: str
 
@@ -138,6 +141,15 @@ if FastAPI:
             "md": "text/markdown; charset=utf-8",
         }.get(fmt, "text/plain; charset=utf-8")
         return Response(content=body, media_type=media_type)
+
+    @app.post("/api/projects/{project_id}/library/{source_type}/{material_id}/review-status")
+    def update_material_review_status(project_id: int, source_type: str, material_id: int, request: ReviewStatusRequest):
+        try:
+            return service.update_material_review_status(project_id, source_type, material_id, request.review_status)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     @app.post("/api/projects/{project_id}/frame-matches", status_code=201)
     def add_frame_match_material(project_id: int, request: FrameMatchMaterialRequest):

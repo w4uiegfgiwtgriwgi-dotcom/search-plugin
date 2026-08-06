@@ -263,5 +263,51 @@ class Stage2MediaMatchingTest(unittest.TestCase):
         self.assertIn('"total_count": 2', json_export)
 
 
+    def test_update_project_library_review_status(self):
+        project = self.service.create_project("review project")
+        task = self.service.create_search_task("air conditioner")
+        result = self.service.list_results(task["id"])[0]
+        search_material = self.service.add_material(project["id"], result["id"], tags=["search"], note="search material")
+
+        asset = self.service.analyze_image(self.query_frame_path)
+        match = self.service.find_frame_match(asset["id"], self.video_path, fps=1.0, threshold=ROBUSTNESS_THRESHOLD)
+        frame_material = self.service.add_frame_match_material(
+            project["id"],
+            match["id"],
+            tags=["frame"],
+            note="frame material",
+            review_status="confirmed",
+        )
+
+        updated_search = self.service.update_material_review_status(
+            project["id"],
+            "search_result",
+            search_material["id"],
+            "rejected",
+        )
+        updated_frame = self.service.update_material_review_status(
+            project["id"],
+            "frame_match",
+            frame_material["id"],
+            "pending",
+        )
+        rejected = self.service.list_project_library(project["id"], review_status="rejected")
+        pending = self.service.list_project_library(project["id"], review_status="pending")
+
+        self.assertEqual(updated_search["review_status"], "rejected")
+        self.assertEqual(updated_frame["review_status"], "pending")
+        self.assertEqual(rejected["total_count"], 1)
+        self.assertEqual(rejected["items"][0]["source_type"], "search_result")
+        self.assertEqual(pending["total_count"], 1)
+        self.assertEqual(pending["items"][0]["source_type"], "frame_match")
+
+        with self.assertRaises(ValueError):
+            self.service.update_material_review_status(project["id"], "frame_match", frame_material["id"], "maybe")
+        with self.assertRaises(ValueError):
+            self.service.update_material_review_status(project["id"], "unknown", frame_material["id"], "pending")
+        with self.assertRaises(KeyError):
+            self.service.update_material_review_status(project["id"], "frame_match", 999, "pending")
+
+
 if __name__ == "__main__":
     unittest.main()

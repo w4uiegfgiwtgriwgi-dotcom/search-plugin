@@ -7,6 +7,7 @@ const stage2Output = document.querySelector("#stage2-output");
 const librarySummary = document.querySelector("#library-summary");
 const libraryList = document.querySelector("#library-list");
 const libraryFilter = document.querySelector("#library-filter");
+const libraryReviewFilter = document.querySelector("#library-review-filter");
 const librarySort = document.querySelector("#library-sort");
 const screenshotDropzone = document.querySelector("#screenshot-dropzone");
 let currentTaskId = null;
@@ -242,6 +243,14 @@ function renderResults(results) {
   `).join("");
 }
 
+function reviewStatusLabel(status) {
+  return {
+    pending: "待复核",
+    confirmed: "已确认",
+    rejected: "已拒绝"
+  }[status] || "未知状态";
+}
+
 function renderLibrary(library) {
   if (!libraryList || !librarySummary) return;
   librarySummary.textContent = `共 ${library.total_count} 条：搜索收藏 ${library.search_result_count} 条，截图反查 ${library.frame_match_count} 条`;
@@ -254,6 +263,14 @@ function renderLibrary(library) {
     const score = item.combined_score == null ? "" : `<p>匹配分：${item.combined_score}</p>`;
     const timestamp = item.selected_timestamp_ms == null ? "" : `<p>时间点：${item.selected_timestamp_ms}ms</p>`;
     const href = item.source_type === "frame_match" ? item.source_url : item.source_url;
+    const reviewButtons = ["pending", "confirmed", "rejected"].map((status) => `
+      <button
+        class="review-button ${item.review_status === status ? "is-active" : ""}"
+        data-review-source="${item.source_type}"
+        data-review-material="${item.material_id}"
+        data-review-status="${status}"
+      >${reviewStatusLabel(status)}</button>
+    `).join("");
     return `
       <article class="library-item">
         <div class="library-kind">${kind}</div>
@@ -261,7 +278,9 @@ function renderLibrary(library) {
         <p>${item.note || "暂无备注"}</p>
         ${timestamp}
         ${score}
+        <p>状态：${reviewStatusLabel(item.review_status)}</p>
         <p>${(item.tags || []).join(" / ") || "未打标签"}</p>
+        <div class="review-actions">${reviewButtons}</div>
         <a href="${href}" target="_blank" rel="noreferrer">打开素材来源</a>
       </article>
     `;
@@ -276,7 +295,7 @@ async function refreshLibrary() {
   }
   const params = new URLSearchParams({
     source_type: libraryFilter?.value || "all",
-    review_status: "all",
+    review_status: libraryReviewFilter?.value || "all",
     sort_by: librarySort?.value || "created_desc"
   });
   const library = await api(`/api/projects/${projectSelect.value}/library?${params.toString()}`);
@@ -291,10 +310,23 @@ function exportLibrary(fmt) {
   }
   const params = new URLSearchParams({
     source_type: libraryFilter?.value || "all",
-    review_status: "all",
+    review_status: libraryReviewFilter?.value || "all",
     sort_by: librarySort?.value || "created_desc"
   });
   window.open(`${apiBase}/api/projects/${projectSelect.value}/library.${fmt}?${params.toString()}`, "_blank");
+}
+
+async function updateLibraryReviewStatus(sourceType, materialId, reviewStatus) {
+  if (!projectSelect.value) {
+    statusEl.textContent = "请先选择项目再修改素材状态";
+    return;
+  }
+  await api(`/api/projects/${projectSelect.value}/library/${sourceType}/${materialId}/review-status`, {
+    method: "POST",
+    body: JSON.stringify({ review_status: reviewStatus })
+  });
+  await refreshLibrary();
+  statusEl.textContent = `已更新素材 ${materialId} 为${reviewStatusLabel(reviewStatus)}`;
 }
 
 async function refreshProjects() {
@@ -446,7 +478,7 @@ document.querySelector("#refresh-library").addEventListener("click", () => {
   });
 });
 
-[libraryFilter, librarySort].forEach((control) => {
+[libraryFilter, libraryReviewFilter, librarySort].forEach((control) => {
   control?.addEventListener("change", () => {
     refreshLibrary().catch((error) => {
       librarySummary.textContent = `项目素材刷新失败：${friendlyError(error)}`;
@@ -456,6 +488,20 @@ document.querySelector("#refresh-library").addEventListener("click", () => {
 
 document.querySelectorAll("button[data-library-export]").forEach((button) => {
   button.addEventListener("click", () => exportLibrary(button.dataset.libraryExport));
+});
+
+libraryList?.addEventListener("click", async (event) => {
+  const button = event.target.closest("button[data-review-status]");
+  if (!button) return;
+  try {
+    await updateLibraryReviewStatus(
+      button.dataset.reviewSource,
+      button.dataset.reviewMaterial,
+      button.dataset.reviewStatus
+    );
+  } catch (error) {
+    librarySummary.textContent = `素材状态更新失败：${friendlyError(error)}`;
+  }
 });
 
 document.querySelector("#analyze-image").addEventListener("click", async () => {

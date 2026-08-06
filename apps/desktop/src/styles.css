@@ -30,6 +30,9 @@ textarea { width: 100%; min-height: 104px; box-sizing: border-box; border: 1px s
 .library-item h3 { font-size: 15px; margin: 6px 0; }
 .library-item p { margin: 6px 0; color: #48525e; font-size: 13px; }
 .library-kind { color: #1f6feb; font-size: 12px; font-weight: 700; }
+.review-actions { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0; }
+.review-button { background: #eef1f4; color: #26313d; border: 1px solid #c7d0da; padding: 6px 9px; font-size: 12px; }
+.review-button.is-active { background: #1f6feb; color: #fff; border-color: #1f6feb; }
 .stage2-panel { margin-top: 16px; }
 .path-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
 .path-grid label { display: grid; gap: 6px; font-size: 13px; color: #48525e; }

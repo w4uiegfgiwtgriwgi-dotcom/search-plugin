@@ -12,6 +12,8 @@ from .models import SearchOptions, SearchResult
 from .query import expand_query
 
 class LocalApiService:
+    REVIEW_STATUSES = {"confirmed", "pending", "rejected"}
+
     def __init__(self, db_path: str | Path = "./.local-data/video-material-finder.sqlite", adapters: dict[str, PlatformAdapter] | None = None):
         self.db = Database(db_path)
         self.adapters = adapters or DEFAULT_ADAPTERS
@@ -64,6 +66,7 @@ class LocalApiService:
             raise KeyError(f"project not found: {project_id}")
         return project
     def add_material(self, project_id: int, result_id: int, tags: list[str] | None = None, note: str = "", selected_timestamp_ms: int | None = None) -> dict[str, Any]:
+        self.get_project(project_id)
         material_id = self.db.execute("""
             INSERT INTO project_materials (project_id, result_id, selected_timestamp_ms, tags_json, note)
             VALUES (?, ?, ?, ?, ?)
@@ -81,6 +84,46 @@ class LocalApiService:
         if not row:
             raise KeyError(f"material not found: {material_id}")
         return loads_json_fields(row, ["tags_json"])
+    def update_material_review_status(
+        self,
+        project_id: int,
+        source_type: str,
+        material_id: int,
+        review_status: str,
+    ) -> dict[str, Any]:
+        self.get_project(project_id)
+        if review_status not in self.REVIEW_STATUSES:
+            raise ValueError("review_status 只能是 confirmed/pending/rejected")
+        if source_type == "search_result":
+            existing = self.db.query_one(
+                "SELECT id FROM project_materials WHERE id = ? AND project_id = ?",
+                (material_id, project_id),
+            )
+            if not existing:
+                raise KeyError(f"material not found: {material_id}")
+            self.db.execute(
+                "UPDATE project_materials SET review_status = ? WHERE id = ? AND project_id = ?",
+                (review_status, material_id, project_id),
+            )
+        elif source_type == "frame_match":
+            existing = self.db.query_one(
+                "SELECT id FROM project_frame_matches WHERE id = ? AND project_id = ?",
+                (material_id, project_id),
+            )
+            if not existing:
+                raise KeyError(f"frame match material not found: {material_id}")
+            self.db.execute(
+                "UPDATE project_frame_matches SET review_status = ? WHERE id = ? AND project_id = ?",
+                (review_status, material_id, project_id),
+            )
+        else:
+            raise ValueError("source_type 只能是 search_result/frame_match")
+        return {
+            "project_id": project_id,
+            "source_type": source_type,
+            "material_id": material_id,
+            "review_status": review_status,
+        }
     def add_frame_match_material(
         self,
         project_id: int,
@@ -91,7 +134,7 @@ class LocalApiService:
     ) -> dict[str, Any]:
         self.get_project(project_id)
         match = self.get_match(match_id)
-        if review_status not in {"confirmed", "pending", "rejected"}:
+        if review_status not in self.REVIEW_STATUSES:
             raise ValueError("review_status 只能是 confirmed/pending/rejected")
         material_id = self.db.execute("""
             INSERT INTO project_frame_matches (project_id, match_id, selected_timestamp_ms, note, tags_json, review_status)

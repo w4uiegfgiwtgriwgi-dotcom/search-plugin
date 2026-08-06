@@ -103,6 +103,13 @@ if FastAPI:
     def list_materials(project_id: int):
         return service.list_materials(project_id)
 
+    @app.get("/api/projects/{project_id}/library")
+    def list_project_library(project_id: int):
+        try:
+            return service.list_project_library(project_id)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+
     @app.post("/api/projects/{project_id}/frame-matches", status_code=201)
     def add_frame_match_material(project_id: int, request: FrameMatchMaterialRequest):
         try:

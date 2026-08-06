@@ -4,6 +4,8 @@ const resultsEl = document.querySelector("#results");
 const projectSelect = document.querySelector("#project-select");
 const apiPill = document.querySelector("#api-pill");
 const stage2Output = document.querySelector("#stage2-output");
+const librarySummary = document.querySelector("#library-summary");
+const libraryList = document.querySelector("#library-list");
 let currentTaskId = null;
 let currentResults = [];
 let currentAssetId = null;
@@ -128,9 +130,47 @@ function renderResults(results) {
   `).join("");
 }
 
+function renderLibrary(library) {
+  if (!libraryList || !librarySummary) return;
+  librarySummary.textContent = `共 ${library.total_count} 条：搜索收藏 ${library.search_result_count} 条，截图反查 ${library.frame_match_count} 条`;
+  if (library.items.length === 0) {
+    libraryList.innerHTML = `<p class="meta">当前项目还没有收藏素材</p>`;
+    return;
+  }
+  libraryList.innerHTML = library.items.map((item) => {
+    const kind = item.source_type === "frame_match" ? "截图反查" : "搜索收藏";
+    const score = item.combined_score == null ? "" : `<p>匹配分：${item.combined_score}</p>`;
+    const timestamp = item.selected_timestamp_ms == null ? "" : `<p>时间点：${item.selected_timestamp_ms}ms</p>`;
+    const href = item.source_type === "frame_match" ? item.source_url : item.source_url;
+    return `
+      <article class="library-item">
+        <div class="library-kind">${kind}</div>
+        <h3>${item.title || "未命名素材"}</h3>
+        <p>${item.note || "暂无备注"}</p>
+        ${timestamp}
+        ${score}
+        <p>${(item.tags || []).join(" / ") || "未打标签"}</p>
+        <a href="${href}" target="_blank" rel="noreferrer">打开素材来源</a>
+      </article>
+    `;
+  }).join("");
+}
+
+async function refreshLibrary() {
+  if (!projectSelect.value) {
+    if (librarySummary) librarySummary.textContent = "等待选择项目";
+    if (libraryList) libraryList.innerHTML = "";
+    return null;
+  }
+  const library = await api(`/api/projects/${projectSelect.value}/library`);
+  renderLibrary(library);
+  return library;
+}
+
 async function refreshProjects() {
   const projects = await api("/api/projects");
   projectSelect.innerHTML = projects.map((project) => `<option value="${project.id}">${project.name}</option>`).join("");
+  await refreshLibrary().catch(() => {});
   return projects;
 }
 
@@ -149,6 +189,7 @@ async function saveResult(resultId) {
     method: "POST",
     body: JSON.stringify({ result_id: Number(resultId), tags: ["阶段1"], note: "从搜索结果收藏" })
   });
+  await refreshLibrary().catch(() => {});
   statusEl.textContent = `已收藏结果 ${resultId} 到项目 ${projectId}`;
 }
 
@@ -176,6 +217,7 @@ async function saveCurrentMatch() {
     candidate_video_path: material.candidate_video_path,
     local_frame_path: material.local_frame_path
   }, null, 2);
+  await refreshLibrary().catch(() => {});
 }
 
 document.querySelector("#search").addEventListener("click", async () => {
@@ -203,6 +245,7 @@ document.querySelector("#create-project").addEventListener("click", async () => 
     const project = await api("/api/projects", { method: "POST", body: JSON.stringify({ name }) });
     await refreshProjects();
     projectSelect.value = String(project.id);
+    await refreshLibrary();
     statusEl.textContent = `已创建项目：${project.name}`;
   } catch (error) {
     statusEl.textContent = `创建项目失败：${error.message}`;
@@ -227,6 +270,18 @@ document.querySelectorAll("button[data-export]").forEach((button) => {
     }
     const fmt = button.dataset.export;
     window.open(`${apiBase}/api/exports/${currentTaskId}.${fmt}`, "_blank");
+  });
+});
+
+projectSelect.addEventListener("change", () => {
+  refreshLibrary().catch((error) => {
+    librarySummary.textContent = `项目素材刷新失败：${error.message}`;
+  });
+});
+
+document.querySelector("#refresh-library").addEventListener("click", () => {
+  refreshLibrary().catch((error) => {
+    librarySummary.textContent = `项目素材刷新失败：${error.message}`;
   });
 });
 

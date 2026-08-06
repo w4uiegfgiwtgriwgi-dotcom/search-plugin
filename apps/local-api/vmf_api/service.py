@@ -139,6 +139,58 @@ class LocalApiService:
         if not row:
             raise KeyError(f"frame match material not found: {material_id}")
         return loads_json_fields(row, ["tags_json"])
+    def list_project_library(self, project_id: int) -> dict[str, Any]:
+        self.get_project(project_id)
+        search_materials = [
+            {
+                "source_type": "search_result",
+                "material_id": item["id"],
+                "title": item["title"],
+                "platform": item["platform"],
+                "source_url": item["source_url"],
+                "cover_url": item["cover_url"],
+                "selected_timestamp_ms": item["selected_timestamp_ms"],
+                "review_status": item["review_status"],
+                "rights_status": item["rights_status"],
+                "tags": item["tags_json"],
+                "note": item["note"],
+                "created_at": item["created_at"],
+            }
+            for item in self.list_materials(project_id)
+        ]
+        frame_materials = [
+            {
+                "source_type": "frame_match",
+                "material_id": item["id"],
+                "match_id": item["match_id"],
+                "title": Path(item["candidate_video_path"]).name,
+                "platform": "local-video",
+                "source_url": item["candidate_video_path"],
+                "cover_url": item["local_frame_path"],
+                "selected_timestamp_ms": item["selected_timestamp_ms"],
+                "timestamp_ms": item["timestamp_ms"],
+                "end_timestamp_ms": item["end_timestamp_ms"],
+                "match_type": item["match_type"],
+                "combined_score": item["combined_score"],
+                "review_status": item["review_status"],
+                "rights_status": item["rights_status"],
+                "tags": item["tags_json"],
+                "note": item["note"],
+                "created_at": item["created_at"],
+                "query_image_path": item["query_image_path"],
+                "query_thumbnail_path": item["query_thumbnail_path"],
+                "local_frame_path": item["local_frame_path"],
+            }
+            for item in self.list_frame_match_materials(project_id)
+        ]
+        items = sorted([*search_materials, *frame_materials], key=lambda item: item["created_at"], reverse=True)
+        return {
+            "project_id": project_id,
+            "total_count": len(items),
+            "search_result_count": len(search_materials),
+            "frame_match_count": len(frame_materials),
+            "items": items,
+        }
     def export_results(self, task_id: int, fmt: str) -> str:
         results = self.list_results(task_id)
         if fmt == "json":

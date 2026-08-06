@@ -168,6 +168,24 @@ class Stage2MediaMatchingTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.service.add_frame_match_material(project["id"], match["id"], review_status="maybe")
 
+    def test_project_library_combines_search_and_frame_materials(self):
+        project = self.service.create_project("统一素材项目")
+        task = self.service.create_search_task("旧空调")
+        result = self.service.list_results(task["id"])[0]
+        self.service.add_material(project["id"], result["id"], tags=["文字搜索"], note="阶段1素材")
+
+        asset = self.service.analyze_image(self.query_frame_path)
+        match = self.service.find_frame_match(asset["id"], self.video_path, fps=1.0, threshold=ROBUSTNESS_THRESHOLD)
+        self.service.add_frame_match_material(project["id"], match["id"], tags=["截图反查"], note="阶段2素材")
+
+        library = self.service.list_project_library(project["id"])
+        source_types = {item["source_type"] for item in library["items"]}
+
+        self.assertEqual(library["total_count"], 2)
+        self.assertEqual(library["search_result_count"], 1)
+        self.assertEqual(library["frame_match_count"], 1)
+        self.assertEqual(source_types, {"search_result", "frame_match"})
+
 
 if __name__ == "__main__":
     unittest.main()

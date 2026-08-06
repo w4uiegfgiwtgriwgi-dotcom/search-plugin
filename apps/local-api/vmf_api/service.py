@@ -81,6 +81,64 @@ class LocalApiService:
         if not row:
             raise KeyError(f"material not found: {material_id}")
         return loads_json_fields(row, ["tags_json"])
+    def add_frame_match_material(
+        self,
+        project_id: int,
+        match_id: int,
+        tags: list[str] | None = None,
+        note: str = "",
+        review_status: str = "confirmed",
+    ) -> dict[str, Any]:
+        self.get_project(project_id)
+        match = self.get_match(match_id)
+        if review_status not in {"confirmed", "pending", "rejected"}:
+            raise ValueError("review_status 只能是 confirmed/pending/rejected")
+        material_id = self.db.execute("""
+            INSERT INTO project_frame_matches (project_id, match_id, selected_timestamp_ms, note, tags_json, review_status)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (project_id, match_id, match["timestamp_ms"], note, json.dumps(tags or [], ensure_ascii=False), review_status)).lastrowid
+        return self.get_frame_match_material(material_id)
+    def list_frame_match_materials(self, project_id: int) -> list[dict[str, Any]]:
+        rows = self.db.query_all("""
+            SELECT
+              pfm.*,
+              fm.query_asset_id,
+              fm.candidate_video_path,
+              fm.timestamp_ms,
+              fm.end_timestamp_ms,
+              fm.match_type,
+              fm.combined_score,
+              fm.local_frame_path,
+              ma.source_path AS query_image_path,
+              ma.thumbnail_path AS query_thumbnail_path
+            FROM project_frame_matches pfm
+            JOIN frame_matches fm ON fm.id = pfm.match_id
+            JOIN media_assets ma ON ma.id = fm.query_asset_id
+            WHERE pfm.project_id = ?
+            ORDER BY pfm.id DESC
+        """, (project_id,))
+        return [loads_json_fields(row, ["tags_json"]) for row in rows]
+    def get_frame_match_material(self, material_id: int) -> dict[str, Any]:
+        row = self.db.query_one("""
+            SELECT
+              pfm.*,
+              fm.query_asset_id,
+              fm.candidate_video_path,
+              fm.timestamp_ms,
+              fm.end_timestamp_ms,
+              fm.match_type,
+              fm.combined_score,
+              fm.local_frame_path,
+              ma.source_path AS query_image_path,
+              ma.thumbnail_path AS query_thumbnail_path
+            FROM project_frame_matches pfm
+            JOIN frame_matches fm ON fm.id = pfm.match_id
+            JOIN media_assets ma ON ma.id = fm.query_asset_id
+            WHERE pfm.id = ?
+        """, (material_id,))
+        if not row:
+            raise KeyError(f"frame match material not found: {material_id}")
+        return loads_json_fields(row, ["tags_json"])
     def export_results(self, task_id: int, fmt: str) -> str:
         results = self.list_results(task_id)
         if fmt == "json":

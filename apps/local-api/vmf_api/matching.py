@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import subprocess
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -41,10 +42,9 @@ def extract_frames(
     if fps <= 0:
         raise ValueError("抽帧 fps 必须大于 0")
     video_path = video_path.resolve()
-    output_dir = _match_dir() / f"asset-{query_asset_id}" / f"{_video_key(video_path)}-{label}-fps-{_fps_label(fps)}-start-{start_ms}"
+    run_id = uuid.uuid4().hex[:8]
+    output_dir = _match_dir() / f"asset-{query_asset_id}" / f"{_video_key(video_path)}-{label}-fps-{_fps_label(fps)}-start-{start_ms}-{run_id}"
     output_dir.mkdir(parents=True, exist_ok=True)
-    for old_frame in output_dir.glob("frame-*.png"):
-        old_frame.unlink()
 
     pattern = output_dir / "frame-%04d.png"
     command = ["ffmpeg", "-y", "-v", "error"]

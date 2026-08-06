@@ -42,6 +42,12 @@ if FastAPI:
         note: str = ""
         selected_timestamp_ms: int | None = None
 
+    class FrameMatchMaterialRequest(BaseModel):
+        match_id: int
+        tags: list[str] = Field(default_factory=list)
+        note: str = ""
+        review_status: str = "confirmed"
+
     class AnalyzeImageRequest(BaseModel):
         image_path: str
 
@@ -96,6 +102,20 @@ if FastAPI:
     @app.get("/api/projects/{project_id}/materials")
     def list_materials(project_id: int):
         return service.list_materials(project_id)
+
+    @app.post("/api/projects/{project_id}/frame-matches", status_code=201)
+    def add_frame_match_material(project_id: int, request: FrameMatchMaterialRequest):
+        try:
+            return service.add_frame_match_material(project_id, request.match_id, request.tags, request.note, request.review_status)
+        except (KeyError, ValueError) as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.get("/api/projects/{project_id}/frame-matches")
+    def list_frame_match_materials(project_id: int):
+        try:
+            return service.list_frame_match_materials(project_id)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
 
     @app.get("/api/exports/{task_id}.{fmt}")
     def export_results(task_id: int, fmt: str):

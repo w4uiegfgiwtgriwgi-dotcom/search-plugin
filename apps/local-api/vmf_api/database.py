@@ -91,6 +91,17 @@ CREATE TABLE IF NOT EXISTS frame_matches (
   evidence_json TEXT NOT NULL DEFAULT '{}',
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+CREATE TABLE IF NOT EXISTS project_frame_matches (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  match_id INTEGER NOT NULL REFERENCES frame_matches(id) ON DELETE CASCADE,
+  selected_timestamp_ms INTEGER NOT NULL,
+  note TEXT NOT NULL DEFAULT '',
+  tags_json TEXT NOT NULL DEFAULT '[]',
+  review_status TEXT NOT NULL DEFAULT 'confirmed',
+  rights_status TEXT NOT NULL DEFAULT 'unknown',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 """
 
 class Database:

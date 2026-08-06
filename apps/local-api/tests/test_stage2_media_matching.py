@@ -143,6 +143,31 @@ class Stage2MediaMatchingTest(unittest.TestCase):
         self.assertGreaterEqual(batch["matches"][0]["combined_score"], batch["matches"][1]["combined_score"])
         self.assertIn("missing.mp4", batch["errors"][0]["candidate_video_path"])
 
+    def test_save_frame_match_material_to_project(self):
+        project = self.service.create_project("截图反查项目")
+        asset = self.service.analyze_image(self.query_frame_path)
+        match = self.service.find_frame_match(asset["id"], self.video_path, fps=1.0, threshold=ROBUSTNESS_THRESHOLD)
+
+        material = self.service.add_frame_match_material(
+            project["id"],
+            match["id"],
+            tags=["阶段2", "截图反查"],
+            note="人工确认可用",
+            review_status="confirmed",
+        )
+        saved = self.service.list_frame_match_materials(project["id"])
+
+        self.assertEqual(material["project_id"], project["id"])
+        self.assertEqual(material["match_id"], match["id"])
+        self.assertEqual(material["selected_timestamp_ms"], match["timestamp_ms"])
+        self.assertEqual(material["review_status"], "confirmed")
+        self.assertEqual(material["tags_json"], ["阶段2", "截图反查"])
+        self.assertEqual(len(saved), 1)
+        self.assertEqual(saved[0]["candidate_video_path"], str(self.video_path.resolve()))
+
+        with self.assertRaises(ValueError):
+            self.service.add_frame_match_material(project["id"], match["id"], review_status="maybe")
+
 
 if __name__ == "__main__":
     unittest.main()

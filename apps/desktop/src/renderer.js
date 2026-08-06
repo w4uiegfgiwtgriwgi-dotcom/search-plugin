@@ -7,6 +7,7 @@ const stage2Output = document.querySelector("#stage2-output");
 let currentTaskId = null;
 let currentResults = [];
 let currentAssetId = null;
+let currentMatch = null;
 
 function renderApiStatus(status) {
   if (!apiPill) return;
@@ -55,6 +56,7 @@ async function uploadImage(file) {
 
 function renderAsset(asset) {
   currentAssetId = asset.id;
+  currentMatch = null;
   stage2Output.textContent = JSON.stringify({
     asset_id: asset.id,
     source_path: asset.source_path,
@@ -65,8 +67,23 @@ function renderAsset(asset) {
   }, null, 2);
 }
 
+function readMatchOptions() {
+  const threshold = Number(document.querySelector("#match-threshold").value || 0.75);
+  const fps = Number(document.querySelector("#match-fps").value || 1);
+  const refineFps = Number(document.querySelector("#refine-fps").value || 4);
+  const refineWindowMs = Number(document.querySelector("#refine-window-ms").value || 1000);
+  return {
+    threshold: Math.min(Math.max(threshold, 0), 1),
+    fps: Math.max(fps, 0.1),
+    refine_fps: Math.max(refineFps, 0.1),
+    refine_window_ms: Math.max(Math.round(refineWindowMs), 250)
+  };
+}
+
 function renderMatch(match) {
+  currentMatch = match;
   stage2Output.textContent = JSON.stringify({
+    match_id: match.id,
     match_type: match.match_type,
     timestamp_ms: match.timestamp_ms,
     end_timestamp_ms: match.end_timestamp_ms,
@@ -78,11 +95,13 @@ function renderMatch(match) {
 }
 
 function renderBatchMatches(batch) {
+  currentMatch = batch.matches[0] || null;
   stage2Output.textContent = JSON.stringify({
     candidate_count: batch.candidate_count,
     match_count: batch.match_count,
     error_count: batch.error_count,
     matches: batch.matches.map((match) => ({
+      match_id: match.id,
       candidate_video_path: match.candidate_video_path,
       match_type: match.match_type,
       timestamp_ms: match.timestamp_ms,
@@ -131,6 +150,32 @@ async function saveResult(resultId) {
     body: JSON.stringify({ result_id: Number(resultId), tags: ["阶段1"], note: "从搜索结果收藏" })
   });
   statusEl.textContent = `已收藏结果 ${resultId} 到项目 ${projectId}`;
+}
+
+async function saveCurrentMatch() {
+  if (!currentMatch) {
+    stage2Output.textContent = "请先完成一次匹配";
+    return;
+  }
+  const projectId = projectSelect.value || (await ensureProject()).id;
+  const material = await api(`/api/projects/${projectId}/frame-matches`, {
+    method: "POST",
+    body: JSON.stringify({
+      match_id: currentMatch.id,
+      tags: ["阶段2", "截图反查"],
+      note: `截图反查匹配帧，时间点 ${currentMatch.timestamp_ms}ms`,
+      review_status: "confirmed"
+    })
+  });
+  stage2Output.textContent = JSON.stringify({
+    saved: true,
+    project_id: projectId,
+    material_id: material.id,
+    match_id: material.match_id,
+    timestamp_ms: material.timestamp_ms,
+    candidate_video_path: material.candidate_video_path,
+    local_frame_path: material.local_frame_path
+  }, null, 2);
 }
 
 document.querySelector("#search").addEventListener("click", async () => {
@@ -227,9 +272,10 @@ document.querySelector("#find-match").addEventListener("click", async () => {
     return;
   }
   try {
+    const options = readMatchOptions();
     const match = await api("/api/matches/find", {
       method: "POST",
-      body: JSON.stringify({ query_asset_id: currentAssetId, candidate_video_path: videoPath, fps: 1, threshold: 0.75, refine_fps: 4, refine_window_ms: 1000 })
+      body: JSON.stringify({ query_asset_id: currentAssetId, candidate_video_path: videoPath, ...options })
     });
     renderMatch(match);
   } catch (error) {
@@ -248,13 +294,22 @@ document.querySelector("#find-batch-match").addEventListener("click", async () =
     return;
   }
   try {
+    const options = readMatchOptions();
     const batch = await api("/api/matches/batch", {
       method: "POST",
-      body: JSON.stringify({ query_asset_id: currentAssetId, candidate_video_paths: paths, fps: 1, threshold: 0.75, refine_fps: 4, refine_window_ms: 1000, top_k: 10 })
+      body: JSON.stringify({ query_asset_id: currentAssetId, candidate_video_paths: paths, ...options, top_k: 10 })
     });
     renderBatchMatches(batch);
   } catch (error) {
     stage2Output.textContent = `批量候选视频匹配失败：${error.message}`;
+  }
+});
+
+document.querySelector("#save-current-match").addEventListener("click", async () => {
+  try {
+    await saveCurrentMatch();
+  } catch (error) {
+    stage2Output.textContent = `收藏匹配帧失败：${error.message}`;
   }
 });
 

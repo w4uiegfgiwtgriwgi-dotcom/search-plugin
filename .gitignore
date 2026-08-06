@@ -15,4 +15,6 @@ stage0-artifacts/
 .local-data/
 __pycache__/
 *.pyc
+.venv/
+apps/desktop/node_modules/
 

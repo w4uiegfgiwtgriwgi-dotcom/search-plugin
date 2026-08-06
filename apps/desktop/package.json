@@ -1,8 +1,16 @@
-﻿{
+{
   "name": "video-material-finder-desktop",
   "version": "0.1.0-stage1",
   "private": true,
   "main": "main.cjs",
-  "scripts": { "start": "electron ." },
-  "dependencies": { "@vitejs/plugin-react": "latest", "electron": "latest", "react": "latest", "react-dom": "latest", "vite": "latest" }
+  "scripts": {
+    "start": "electron ."
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "6.0.5",
+    "electron": "43.3.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "vite": "8.2.0"
+  }
 }

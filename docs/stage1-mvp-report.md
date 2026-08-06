@@ -1,43 +1,62 @@
 ﻿# 阶段1 MVP 执行报告
 
-> 日期：2026-08-05  
-> 范围：阶段1 本地素材搜索 MVP 早期闭环。  
-> 边界：未创建远程仓库，未推送 GitHub，未接入真实平台登录，未实现完整生产 UI。
+> 日期：2026-08-06  
+> 范围：阶段1 本地素材搜索 MVP 补强。  
+> 边界：未创建远程仓库，未推送 GitHub，未接入真实平台登录，未实现真实平台自动搜索。
 
 ## 已完成
 
 - 本地 API 核心服务：搜索任务、结果入库、项目、收藏、CSV/JSON/Markdown 导出。
 - SQLite 持久化结构：`search_tasks`、`search_results`、`projects`、`project_materials`。
+- FastAPI 入口补齐：平台、搜索任务、结果、项目、收藏、导出接口均可用，并加入 CORS。
+- Python 依赖已安装到项目 `.venv`，并生成 `apps/local-api/requirements.lock.txt`。
+- 桌面端依赖已安装并锁定，生成 `apps/desktop/package-lock.json`。
 - 两个平台适配器：`web-search` 录制样本、`bilibili` Mock 样本。
-- 桌面端阶段1壳：可打开的静态搜索界面，预留 Electron 入口。
+- 桌面端阶段1壳补强：搜索、项目创建、收藏到项目、CSV/JSON/Markdown 导出入口。
 - Chrome MV3 扩展骨架：用户主动点击后读取当前页面标题和 URL。
-- 自动化测试：Python `unittest` 覆盖搜索、收藏、导出、查询扩展；Node 测试沿用阶段0验证。
+- 运行说明：`docs/stage1-runbook.md`。
+
+## 已锁定的关键依赖
+
+- FastAPI：0.141.1
+- Uvicorn：0.52.1
+- Pydantic：2.13.4
+- Electron：43.3.0
+- React：19.2.8
+- React DOM：19.2.8
+- Vite：8.2.0
+- @vitejs/plugin-react：6.0.5
 
 ## 未完成
 
-- 当前环境未安装 FastAPI，已提供 `fastapi_app.py` 兼容入口，但未启动真实 FastAPI 服务。
-- 当前环境未安装 Electron/React 依赖，桌面端以静态页面和 Electron 配置骨架交付。
 - 真实 B站或普通网页联网搜索未启用，阶段1继续使用低风险样本适配器。
 - 还没有实现登录态、浏览器辅助搜索、真实收藏当前页面到本地 API。
+- 桌面端已安装 Electron，但未做生产打包，也没有内置自动拉起 API 的完整生命周期管理。
 
 ## 测试结果
 
 - Python API 单元测试：3 个测试通过。
 - Node 阶段0/共享测试：6 个测试通过。
 - 阶段0技术检查回归：8 项通过。
-- HTTP API 烟测：通过。POST `/api/search/tasks` 返回 `completed`，GET `/api/search/tasks/{id}/results` 返回 3 条结果，平台包括 `bilibili` 和 `web-search`。`scripts/run-local-api.py` 已启动后台服务，当前地址为 `http://127.0.0.1:17860`。
+- FastAPI 临时端口烟测：通过。平台数 2，搜索任务 `completed`，结果数 3。
+- FastAPI 17860 运行中烟测：通过。搜索返回 3 条结果，创建项目成功，收藏结果成功，CSV 导出包含 `source_url`。
+- 桌面端和扩展 JS 语法检查：通过。
+
+## 当前运行状态
+
+- FastAPI 服务已运行在 `http://127.0.0.1:17860`。
+- 当前监听进程 PID：18708。
+- 桌面静态页面路径：`apps/desktop/src/index.html`。
 
 ## 已知风险
 
 - 当前平台结果来自录制样本和 Mock，不代表真实平台搜索能力已经完成。
-- FastAPI、Electron、React 依赖尚未安装和锁定，后续需要联网安装或提供离线包。
-- 当前桌面端静态页面依赖本地 API 已启动；还没有应用内自动拉起本地服务。
-- 浏览器扩展只读当前页面标题和 URL，尚未写入本地素材库。
+- 依赖版本已锁定，但 Electron/React 仍未做 Windows 打包验证。
+- 当前 FFmpeg 发行包为 gyan.dev full/essentials 系列，后续若随产品分发需继续处理 GPL/LGPL 合规策略。
+- 当前浏览器扩展只读当前页面标题和 URL，尚未写入本地素材库。
 
 ## 下一步建议
 
-- 安装并锁定 FastAPI/Uvicorn 与 Electron/React 依赖版本。
-- 将标准库 HTTP 服务迁移到真实 FastAPI 运行，并保留核心 service 的测试。
-- 在获得允许后做一次低频公开网页搜索联网验证。
-- 继续保持适配器和 Provider 接口隔离，避免把平台逻辑写死在 UI 中。
-
+- 在阶段1内继续做“桌面端启动 API 生命周期管理”，让 Electron 打开时自动拉起/检测本地 API。
+- 在获得明确允许后，做一次低频公开网页搜索联网验证。
+- 再进入阶段2前，确认截图上传、OCR、pHash、视觉向量真实 Provider 的安装策略。

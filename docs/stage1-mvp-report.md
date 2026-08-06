@@ -43,7 +43,7 @@
 - FastAPI 17860 运行中烟测：通过。搜索返回 3 条结果，创建项目成功，收藏结果成功，CSV 导出包含 `source_url`。
 - 桌面端和扩展 JS 语法检查：通过。
 - Electron 自动拉起逻辑检查：通过。`api-process.cjs` 可检测到当前 FastAPI 服务，并在服务已运行时复用已有服务。
-- Electron GUI smoke：暂未通过。原因是 `electron` npm 包已安装，但 Electron Windows 二进制未下载成功，`node_modules/electron/dist/electron.exe` 不存在；重复运行安装脚本 5 分钟超时。
+- Electron GUI smoke：通过。通过 Electron 镜像源补齐 Windows 二进制后，`npm run smoke` 成功启动并自动退出，主进程确认 API 状态为 `ready`。
 
 ## 当前运行状态
 
@@ -54,13 +54,13 @@
 ## 已知风险
 
 - 当前平台结果来自录制样本和 Mock，不代表真实平台搜索能力已经完成。
-- 依赖版本已锁定，但 Electron 二进制下载在当前网络环境下未完成，因此 Electron GUI 启动和 Windows 打包仍未验证。
+- 依赖版本已锁定，Electron GUI 启动 smoke 已验证；Windows 生产打包仍未验证。
 - 当前 FFmpeg 发行包为 gyan.dev full/essentials 系列，后续若随产品分发需继续处理 GPL/LGPL 合规策略。
 - 当前浏览器扩展只读当前页面标题和 URL，尚未写入本地素材库。
 
 ## 下一步建议
 
 - 在阶段1内继续做桌面端真实交互 QA 和打包前检查。
-- 先解决 Electron 二进制下载问题，可重试 `node node_modules/electron/install.js` 或配置可用镜像源后再运行 `npm run smoke`。
+- 后续若重新安装依赖遇到 Electron 下载慢，可配置 `ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/` 后再运行 `node node_modules/electron/install.js`。
 - 在获得明确允许后，做一次低频公开网页搜索联网验证。
 - 再进入阶段2前，确认截图上传、OCR、pHash、视觉向量真实 Provider 的安装策略。

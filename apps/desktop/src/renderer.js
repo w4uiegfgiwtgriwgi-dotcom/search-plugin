@@ -6,6 +6,7 @@ const apiPill = document.querySelector("#api-pill");
 const stage2Output = document.querySelector("#stage2-output");
 const librarySummary = document.querySelector("#library-summary");
 const libraryList = document.querySelector("#library-list");
+const libraryKeyword = document.querySelector("#library-keyword");
 const libraryFilter = document.querySelector("#library-filter");
 const libraryReviewFilter = document.querySelector("#library-review-filter");
 const libraryRightsFilter = document.querySelector("#library-rights-filter");
@@ -360,6 +361,7 @@ async function refreshLibrary() {
     return null;
   }
   const params = new URLSearchParams({
+    keyword: libraryKeyword?.value.trim() || "",
     source_type: libraryFilter?.value || "all",
     review_status: libraryReviewFilter?.value || "all",
     rights_status: libraryRightsFilter?.value || "all",
@@ -376,6 +378,7 @@ function exportLibrary(fmt) {
     return;
   }
   const params = new URLSearchParams({
+    keyword: libraryKeyword?.value.trim() || "",
     source_type: libraryFilter?.value || "all",
     review_status: libraryReviewFilter?.value || "all",
     rights_status: libraryRightsFilter?.value || "all",
@@ -584,6 +587,12 @@ document.querySelector("#refresh-library").addEventListener("click", () => {
     refreshLibrary().catch((error) => {
       librarySummary.textContent = `项目素材刷新失败：${friendlyError(error)}`;
     });
+  });
+});
+
+libraryKeyword?.addEventListener("input", () => {
+  refreshLibrary().catch((error) => {
+    librarySummary.textContent = `项目素材刷新失败：${friendlyError(error)}`;
   });
 });
 

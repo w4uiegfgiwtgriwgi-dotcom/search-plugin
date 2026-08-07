@@ -401,6 +401,33 @@ class Stage2MediaMatchingTest(unittest.TestCase):
         with self.assertRaises(KeyError):
             self.service.update_material_rights_status(project["id"], "search_result", 999, "cleared")
 
+    def test_project_library_keyword_filter(self):
+        project = self.service.create_project("keyword project")
+        task = self.service.create_search_task("air conditioner")
+        result = self.service.list_results(task["id"])[0]
+        self.service.add_material(project["id"], result["id"], tags=["opening", "heat"], note="find by note")
+
+        asset = self.service.analyze_image(self.query_frame_path)
+        match = self.service.find_frame_match(asset["id"], self.video_path, fps=1.0, threshold=ROBUSTNESS_THRESHOLD)
+        self.service.add_frame_match_material(project["id"], match["id"], tags=["visual"], note="frame only")
+
+        by_tag = self.service.list_project_library(project["id"], keyword="opening")
+        by_note = self.service.list_project_library(project["id"], keyword="frame only")
+        by_path = self.service.list_project_library(project["id"], keyword="stage2-self-made")
+        missing = self.service.list_project_library(project["id"], keyword="not-found-keyword")
+        md_export = self.service.export_project_library(project["id"], "md", keyword="opening")
+
+        self.assertEqual(by_tag["total_count"], 1)
+        self.assertEqual(by_tag["items"][0]["source_type"], "search_result")
+        self.assertEqual(by_tag["summary"]["all_count"], 2)
+        self.assertEqual(by_tag["summary"]["filtered_count"], 1)
+        self.assertEqual(by_note["total_count"], 1)
+        self.assertEqual(by_note["items"][0]["source_type"], "frame_match")
+        self.assertEqual(by_path["total_count"], 1)
+        self.assertEqual(missing["total_count"], 0)
+        self.assertIn("opening", md_export)
+        self.assertNotIn("frame only", md_export)
+
 
 if __name__ == "__main__":
     unittest.main()

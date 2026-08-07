@@ -318,6 +318,7 @@ class LocalApiService:
         source_type: str | None = None,
         review_status: str | None = None,
         rights_status: str | None = None,
+        keyword: str | None = None,
         sort_by: str = "created_desc",
     ) -> dict[str, Any]:
         self.get_project(project_id)
@@ -375,6 +376,9 @@ class LocalApiService:
             if rights_status not in self.RIGHTS_STATUSES:
                 raise ValueError("rights_status 只能是 all/unknown/cleared/needs_permission/blocked")
             items = [item for item in items if item["rights_status"] == rights_status]
+        normalized_keyword = (keyword or "").strip().lower()
+        if normalized_keyword:
+            items = [item for item in items if self._library_item_matches_keyword(item, normalized_keyword)]
         if sort_by == "created_asc":
             items = sorted(items, key=lambda item: item["created_at"])
         elif sort_by == "score_desc":
@@ -400,9 +404,10 @@ class LocalApiService:
         source_type: str | None = None,
         review_status: str | None = None,
         rights_status: str | None = None,
+        keyword: str | None = None,
         sort_by: str = "created_desc",
     ) -> str:
-        library = self.list_project_library(project_id, source_type, review_status, rights_status, sort_by)
+        library = self.list_project_library(project_id, source_type, review_status, rights_status, keyword, sort_by)
         items = library["items"]
         if fmt == "json":
             return json.dumps(library, ensure_ascii=False, indent=2)
@@ -576,6 +581,16 @@ class LocalApiService:
         }
     def _count_library_items(self, items: list[dict[str, Any]], key: str, value: str) -> int:
         return sum(1 for item in items if item.get(key) == value)
+    def _library_item_matches_keyword(self, item: dict[str, Any], keyword: str) -> bool:
+        searchable_parts = [
+            item.get("title"),
+            item.get("platform"),
+            item.get("source_url"),
+            item.get("note"),
+            item.get("match_type"),
+            *item.get("tags", []),
+        ]
+        return keyword in " ".join(str(part or "").lower() for part in searchable_parts)
     def _insert_result(self, task_id: int, result: SearchResult) -> int:
         r = result.to_record()
         return self.db.execute("""

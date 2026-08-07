@@ -10,6 +10,7 @@ const libraryKeyword = document.querySelector("#library-keyword");
 const libraryFilter = document.querySelector("#library-filter");
 const libraryReviewFilter = document.querySelector("#library-review-filter");
 const libraryRightsFilter = document.querySelector("#library-rights-filter");
+const libraryConfidenceFilter = document.querySelector("#library-confidence-filter");
 const librarySort = document.querySelector("#library-sort");
 const screenshotDropzone = document.querySelector("#screenshot-dropzone");
 let currentTaskId = null;
@@ -374,6 +375,7 @@ async function refreshLibrary() {
     source_type: libraryFilter?.value || "all",
     review_status: libraryReviewFilter?.value || "all",
     rights_status: libraryRightsFilter?.value || "all",
+    match_confidence: libraryConfidenceFilter?.value || "all",
     sort_by: librarySort?.value || "created_desc"
   });
   const library = await api(`/api/projects/${projectSelect.value}/library?${params.toString()}`);
@@ -391,6 +393,7 @@ function exportLibrary(fmt) {
     source_type: libraryFilter?.value || "all",
     review_status: libraryReviewFilter?.value || "all",
     rights_status: libraryRightsFilter?.value || "all",
+    match_confidence: libraryConfidenceFilter?.value || "all",
     sort_by: librarySort?.value || "created_desc"
   });
   window.open(`${apiBase}/api/projects/${projectSelect.value}/library.${fmt}?${params.toString()}`, "_blank");
@@ -591,7 +594,7 @@ document.querySelector("#refresh-library").addEventListener("click", () => {
   });
 });
 
-[libraryFilter, libraryReviewFilter, libraryRightsFilter, librarySort].forEach((control) => {
+[libraryFilter, libraryReviewFilter, libraryRightsFilter, libraryConfidenceFilter, librarySort].forEach((control) => {
   control?.addEventListener("change", () => {
     refreshLibrary().catch((error) => {
       librarySummary.textContent = `项目素材刷新失败：${friendlyError(error)}`;

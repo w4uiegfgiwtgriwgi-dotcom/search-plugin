@@ -473,6 +473,32 @@ class Stage2MediaMatchingTest(unittest.TestCase):
         self.assertGreaterEqual(time_desc["items"][0]["selected_timestamp_ms"], time_desc["items"][1]["selected_timestamp_ms"])
         self.assertEqual(time_desc["items"][-1]["source_type"], "search_result")
 
+    def test_project_library_filters_by_match_confidence(self):
+        project = self.service.create_project("confidence project")
+        task = self.service.create_search_task("air conditioner")
+        result = self.service.list_results(task["id"])[0]
+        self.service.add_material(project["id"], result["id"], tags=["search"], note="not a frame match")
+
+        asset = self.service.analyze_image(self.query_frame_path)
+        match = self.service.find_frame_match(asset["id"], self.video_path, fps=1.0, threshold=ROBUSTNESS_THRESHOLD)
+        self.service.add_frame_match_material(project["id"], match["id"], tags=["frame"], note="confidence filter")
+        confidence = self.service._match_confidence(match["combined_score"])
+
+        filtered = self.service.list_project_library(project["id"], match_confidence=confidence)
+        empty = self.service.list_project_library(project["id"], match_confidence="low" if confidence != "low" else "high")
+        json_export = self.service.export_project_library(project["id"], "json", match_confidence=confidence)
+
+        self.assertEqual(filtered["total_count"], 1)
+        self.assertEqual(filtered["items"][0]["source_type"], "frame_match")
+        self.assertEqual(filtered["items"][0]["match_confidence"], confidence)
+        self.assertEqual(filtered["summary"]["all_count"], 2)
+        self.assertEqual(filtered["summary"]["filtered_count"], 1)
+        self.assertEqual(empty["total_count"], 0)
+        self.assertIn(f'"match_confidence": "{confidence}"', json_export)
+
+        with self.assertRaises(ValueError):
+            self.service.list_project_library(project["id"], match_confidence="maybe")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -135,11 +135,12 @@ if FastAPI:
         source_type: str = "all",
         review_status: str = "all",
         rights_status: str = "all",
+        match_confidence: str = "all",
         keyword: str = "",
         sort_by: str = "created_desc",
     ):
         try:
-            return service.list_project_library(project_id, source_type, review_status, rights_status, keyword, sort_by)
+            return service.list_project_library(project_id, source_type, review_status, rights_status, match_confidence, keyword, sort_by)
         except (KeyError, ValueError) as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -150,11 +151,12 @@ if FastAPI:
         source_type: str = "all",
         review_status: str = "all",
         rights_status: str = "all",
+        match_confidence: str = "all",
         keyword: str = "",
         sort_by: str = "created_desc",
     ):
         try:
-            body = service.export_project_library(project_id, fmt, source_type, review_status, rights_status, keyword, sort_by)
+            body = service.export_project_library(project_id, fmt, source_type, review_status, rights_status, match_confidence, keyword, sort_by)
         except (KeyError, ValueError) as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         media_type = {

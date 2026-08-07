@@ -326,6 +326,7 @@ class LocalApiService:
         source_type: str | None = None,
         review_status: str | None = None,
         rights_status: str | None = None,
+        match_confidence: str | None = None,
         keyword: str | None = None,
         sort_by: str = "created_desc",
     ) -> dict[str, Any]:
@@ -395,6 +396,10 @@ class LocalApiService:
             if rights_status not in self.RIGHTS_STATUSES:
                 raise ValueError("rights_status 只能是 all/unknown/cleared/needs_permission/blocked")
             items = [item for item in items if item["rights_status"] == rights_status]
+        if match_confidence and match_confidence != "all":
+            if match_confidence not in {"high", "medium", "low"}:
+                raise ValueError("match_confidence 只能是 all/high/medium/low")
+            items = [item for item in items if item.get("match_confidence") == match_confidence]
         normalized_keyword = (keyword or "").strip().lower()
         if normalized_keyword:
             items = [item for item in items if self._library_item_matches_keyword(item, normalized_keyword)]
@@ -427,10 +432,11 @@ class LocalApiService:
         source_type: str | None = None,
         review_status: str | None = None,
         rights_status: str | None = None,
+        match_confidence: str | None = None,
         keyword: str | None = None,
         sort_by: str = "created_desc",
     ) -> str:
-        library = self.list_project_library(project_id, source_type, review_status, rights_status, keyword, sort_by)
+        library = self.list_project_library(project_id, source_type, review_status, rights_status, match_confidence, keyword, sort_by)
         items = library["items"]
         if fmt == "json":
             return json.dumps(library, ensure_ascii=False, indent=2)

@@ -301,6 +301,7 @@ function renderLibrary(library) {
   libraryList.innerHTML = library.items.map((item) => {
     const kind = item.source_type === "frame_match" ? "截图反查" : "搜索收藏";
     const score = item.combined_score == null ? "" : `<p>匹配分：${item.combined_score}</p>`;
+    const confidence = item.match_confidence_label ? `<p>可信度：${escapeHtml(item.match_confidence_label)}</p>` : "";
     const scoreDetails = item.phash_score == null ? "" : `
       <p>分数明细：pHash ${item.phash_score} / 视觉 ${item.visual_score} / 文字 ${item.text_score}</p>
     `;
@@ -333,6 +334,7 @@ function renderLibrary(library) {
         <p>${escapeHtml(note || "暂无备注")}</p>
         ${timestamp}
         ${score}
+        ${confidence}
         ${scoreDetails}
         ${evidence}
         <p>状态：${reviewStatusLabel(item.review_status)}</p>

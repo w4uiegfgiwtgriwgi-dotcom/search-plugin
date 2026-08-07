@@ -368,6 +368,8 @@ class LocalApiService:
                 "visual_score": item["visual_score"],
                 "text_score": item["text_score"],
                 "combined_score": item["combined_score"],
+                "match_confidence": self._match_confidence(item["combined_score"]),
+                "match_confidence_label": self._match_confidence_label(item["combined_score"]),
                 "evidence": item["evidence_json"],
                 "evidence_summary": self._summarize_match_evidence(item["evidence_json"]),
                 "review_status": item["review_status"],
@@ -448,6 +450,8 @@ class LocalApiService:
                 "phash_score",
                 "visual_score",
                 "text_score",
+                "match_confidence",
+                "match_confidence_label",
                 "evidence_summary",
                 "review_status",
                 "rights_status",
@@ -475,6 +479,8 @@ class LocalApiService:
                     lines.append(f"  - 时间码：{item['timecode']}")
                 if item.get("combined_score") is not None:
                     lines.append(f"  - 匹配分：{item['combined_score']}")
+                if item.get("match_confidence_label"):
+                    lines.append(f"  - 可信度：{item['match_confidence_label']}")
                 if item.get("evidence_summary"):
                     lines.append(f"  - 证据：{item['evidence_summary']}")
                 if item.get("note"):
@@ -622,10 +628,28 @@ class LocalApiService:
             item.get("match_type"),
             item.get("timecode"),
             item.get("selected_timecode"),
+            item.get("match_confidence"),
+            item.get("match_confidence_label"),
             item.get("evidence_summary"),
             *item.get("tags", []),
         ]
         return keyword in " ".join(str(part or "").lower() for part in searchable_parts)
+    def _match_confidence(self, combined_score: float | None) -> str | None:
+        if combined_score is None:
+            return None
+        score = float(combined_score)
+        if score >= 0.85:
+            return "high"
+        if score >= 0.7:
+            return "medium"
+        return "low"
+    def _match_confidence_label(self, combined_score: float | None) -> str | None:
+        confidence = self._match_confidence(combined_score)
+        return {
+            "high": "高可信",
+            "medium": "中可信",
+            "low": "低可信",
+        }.get(confidence)
     def _summarize_match_evidence(self, evidence: dict[str, Any] | None) -> str:
         if not evidence:
             return ""

@@ -261,11 +261,14 @@ class Stage2MediaMatchingTest(unittest.TestCase):
 
         self.assertEqual(frame_only["total_count"], 1)
         self.assertEqual(frame_only["items"][0]["source_type"], "frame_match")
+        self.assertRegex(frame_only["items"][0]["timecode"], r"^\d{2}:\d{2}:\d{2}\.\d{3}$")
+        self.assertRegex(frame_only["items"][0]["selected_timecode"], r"^\d{2}:\d{2}:\d{2}\.\d{3}$")
         self.assertEqual(frame_only["summary"]["all_count"], 2)
         self.assertEqual(frame_only["summary"]["filtered_count"], 1)
         self.assertEqual(score_sorted["items"][0]["source_type"], "frame_match")
         self.assertIn("source_type", csv_export)
         self.assertIn("frame_match", md_export)
+        self.assertIn("时间码", md_export)
         self.assertIn('"total_count": 2', json_export)
 
 
@@ -414,6 +417,7 @@ class Stage2MediaMatchingTest(unittest.TestCase):
         by_tag = self.service.list_project_library(project["id"], keyword="opening")
         by_note = self.service.list_project_library(project["id"], keyword="frame only")
         by_path = self.service.list_project_library(project["id"], keyword="stage2-self-made")
+        by_timecode = self.service.list_project_library(project["id"], keyword="00:00:")
         missing = self.service.list_project_library(project["id"], keyword="not-found-keyword")
         md_export = self.service.export_project_library(project["id"], "md", keyword="opening")
 
@@ -424,6 +428,8 @@ class Stage2MediaMatchingTest(unittest.TestCase):
         self.assertEqual(by_note["total_count"], 1)
         self.assertEqual(by_note["items"][0]["source_type"], "frame_match")
         self.assertEqual(by_path["total_count"], 1)
+        self.assertEqual(by_timecode["total_count"], 1)
+        self.assertEqual(by_timecode["items"][0]["source_type"], "frame_match")
         self.assertEqual(missing["total_count"], 0)
         self.assertIn("opening", md_export)
         self.assertNotIn("frame only", md_export)

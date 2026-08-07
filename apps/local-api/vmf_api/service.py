@@ -331,6 +331,7 @@ class LocalApiService:
                 "source_url": item["source_url"],
                 "cover_url": item["cover_url"],
                 "selected_timestamp_ms": item["selected_timestamp_ms"],
+                "selected_timecode": self._format_timecode(item["selected_timestamp_ms"]),
                 "review_status": item["review_status"],
                 "rights_status": item["rights_status"],
                 "tags": item["tags_json"],
@@ -349,8 +350,11 @@ class LocalApiService:
                 "source_url": item["candidate_video_path"],
                 "cover_url": item["local_frame_path"],
                 "selected_timestamp_ms": item["selected_timestamp_ms"],
+                "selected_timecode": self._format_timecode(item["selected_timestamp_ms"]),
                 "timestamp_ms": item["timestamp_ms"],
+                "timecode": self._format_timecode(item["timestamp_ms"]),
                 "end_timestamp_ms": item["end_timestamp_ms"],
+                "end_timecode": self._format_timecode(item["end_timestamp_ms"]),
                 "match_type": item["match_type"],
                 "combined_score": item["combined_score"],
                 "review_status": item["review_status"],
@@ -420,6 +424,9 @@ class LocalApiService:
                 "platform",
                 "source_url",
                 "selected_timestamp_ms",
+                "selected_timecode",
+                "timecode",
+                "end_timecode",
                 "combined_score",
                 "review_status",
                 "rights_status",
@@ -443,6 +450,8 @@ class LocalApiService:
                 lines.append(f"  - 状态：{item['review_status']}，标签：{tags}")
                 if item.get("selected_timestamp_ms") is not None:
                     lines.append(f"  - 时间点：{item['selected_timestamp_ms']}ms")
+                if item.get("timecode"):
+                    lines.append(f"  - 时间码：{item['timecode']}")
                 if item.get("combined_score") is not None:
                     lines.append(f"  - 匹配分：{item['combined_score']}")
                 if item.get("note"):
@@ -588,9 +597,22 @@ class LocalApiService:
             item.get("source_url"),
             item.get("note"),
             item.get("match_type"),
+            item.get("timecode"),
+            item.get("selected_timecode"),
             *item.get("tags", []),
         ]
         return keyword in " ".join(str(part or "").lower() for part in searchable_parts)
+    def _format_timecode(self, timestamp_ms: int | None) -> str | None:
+        if timestamp_ms is None:
+            return None
+        total_ms = max(0, int(timestamp_ms))
+        milliseconds = total_ms % 1000
+        total_seconds = total_ms // 1000
+        seconds = total_seconds % 60
+        total_minutes = total_seconds // 60
+        minutes = total_minutes % 60
+        hours = total_minutes // 60
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d}.{milliseconds:03d}"
     def _insert_result(self, task_id: int, result: SearchResult) -> int:
         r = result.to_record()
         return self.db.execute("""

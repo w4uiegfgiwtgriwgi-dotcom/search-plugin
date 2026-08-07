@@ -301,7 +301,8 @@ function renderLibrary(library) {
   libraryList.innerHTML = library.items.map((item) => {
     const kind = item.source_type === "frame_match" ? "截图反查" : "搜索收藏";
     const score = item.combined_score == null ? "" : `<p>匹配分：${item.combined_score}</p>`;
-    const timestamp = item.selected_timestamp_ms == null ? "" : `<p>时间点：${item.selected_timestamp_ms}ms</p>`;
+    const timeLabel = item.timecode || item.selected_timecode;
+    const timestamp = item.selected_timestamp_ms == null ? "" : `<p>时间点：${timeLabel || ""} (${item.selected_timestamp_ms}ms)</p>`;
     const href = item.source_type === "frame_match" ? item.source_url : item.source_url;
     const note = item.note || "";
     const tags = item.tags || [];

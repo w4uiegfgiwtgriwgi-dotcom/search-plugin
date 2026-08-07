@@ -389,10 +389,14 @@ class LocalApiService:
             items = sorted(items, key=lambda item: item.get("combined_score") or -1, reverse=True)
         elif sort_by == "title_asc":
             items = sorted(items, key=lambda item: item["title"])
+        elif sort_by == "time_asc":
+            items = sorted(items, key=lambda item: self._timestamp_sort_value(item, reverse=False))
+        elif sort_by == "time_desc":
+            items = sorted(items, key=lambda item: self._timestamp_sort_value(item, reverse=True), reverse=True)
         elif sort_by == "created_desc":
             items = sorted(items, key=lambda item: item["created_at"], reverse=True)
         else:
-            raise ValueError("sort_by 只能是 created_desc/created_asc/score_desc/title_asc")
+            raise ValueError("sort_by 只能是 created_desc/created_asc/score_desc/title_asc/time_asc/time_desc")
         return {
             "project_id": project_id,
             "total_count": len(items),
@@ -613,6 +617,11 @@ class LocalApiService:
         minutes = total_minutes % 60
         hours = total_minutes // 60
         return f"{hours:02d}:{minutes:02d}:{seconds:02d}.{milliseconds:03d}"
+    def _timestamp_sort_value(self, item: dict[str, Any], reverse: bool) -> int:
+        timestamp = item.get("selected_timestamp_ms")
+        if timestamp is None:
+            return -1 if reverse else 2**63 - 1
+        return int(timestamp)
     def _insert_result(self, task_id: int, result: SearchResult) -> int:
         r = result.to_record()
         return self.db.execute("""

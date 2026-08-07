@@ -434,6 +434,29 @@ class Stage2MediaMatchingTest(unittest.TestCase):
         self.assertIn("opening", md_export)
         self.assertNotIn("frame only", md_export)
 
+    def test_project_library_sorts_by_match_time(self):
+        project = self.service.create_project("time sort project")
+        task = self.service.create_search_task("air conditioner")
+        result = self.service.list_results(task["id"])[0]
+        self.service.add_material(project["id"], result["id"], tags=["search"], note="no timestamp")
+
+        early_asset = self.service.analyze_image(self.query_frame_path)
+        late_asset = self.service.analyze_image(self.variant_paths["tone"])
+        early_match = self.service.find_frame_match(early_asset["id"], self.video_path, fps=1.0, threshold=ROBUSTNESS_THRESHOLD)
+        late_match = self.service.find_frame_match(late_asset["id"], self.video_path, fps=1.0, threshold=ROBUSTNESS_THRESHOLD)
+        self.service.add_frame_match_material(project["id"], late_match["id"], tags=["late"], note="late")
+        self.service.add_frame_match_material(project["id"], early_match["id"], tags=["early"], note="early")
+
+        time_asc = self.service.list_project_library(project["id"], sort_by="time_asc")
+        time_desc = self.service.list_project_library(project["id"], sort_by="time_desc")
+
+        self.assertEqual(time_asc["items"][0]["source_type"], "frame_match")
+        self.assertEqual(time_asc["items"][1]["source_type"], "frame_match")
+        self.assertLessEqual(time_asc["items"][0]["selected_timestamp_ms"], time_asc["items"][1]["selected_timestamp_ms"])
+        self.assertEqual(time_asc["items"][-1]["source_type"], "search_result")
+        self.assertGreaterEqual(time_desc["items"][0]["selected_timestamp_ms"], time_desc["items"][1]["selected_timestamp_ms"])
+        self.assertEqual(time_desc["items"][-1]["source_type"], "search_result")
+
 
 if __name__ == "__main__":
     unittest.main()

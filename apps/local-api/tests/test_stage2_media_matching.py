@@ -350,6 +350,47 @@ class Stage2MediaMatchingTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.service.update_material_metadata(project["id"], "search_result", search_material["id"], tags=[], note="x" * 1001)
 
+    def test_update_project_library_rights_status(self):
+        project = self.service.create_project("rights project")
+        task = self.service.create_search_task("air conditioner")
+        result = self.service.list_results(task["id"])[0]
+        search_material = self.service.add_material(project["id"], result["id"], tags=["search"], note="search material")
+
+        asset = self.service.analyze_image(self.query_frame_path)
+        match = self.service.find_frame_match(asset["id"], self.video_path, fps=1.0, threshold=ROBUSTNESS_THRESHOLD)
+        frame_material = self.service.add_frame_match_material(project["id"], match["id"], tags=["frame"], note="frame material")
+
+        updated_search = self.service.update_material_rights_status(
+            project["id"],
+            "search_result",
+            search_material["id"],
+            "needs_permission",
+        )
+        updated_frame = self.service.update_material_rights_status(
+            project["id"],
+            "frame_match",
+            frame_material["id"],
+            "cleared",
+        )
+        needs_permission = self.service.list_project_library(project["id"], rights_status="needs_permission")
+        cleared = self.service.list_project_library(project["id"], rights_status="cleared")
+        json_export = self.service.export_project_library(project["id"], "json", rights_status="cleared")
+
+        self.assertEqual(updated_search["rights_status"], "needs_permission")
+        self.assertEqual(updated_frame["rights_status"], "cleared")
+        self.assertEqual(needs_permission["total_count"], 1)
+        self.assertEqual(needs_permission["items"][0]["source_type"], "search_result")
+        self.assertEqual(cleared["total_count"], 1)
+        self.assertEqual(cleared["items"][0]["source_type"], "frame_match")
+        self.assertIn('"rights_status": "cleared"', json_export)
+
+        with self.assertRaises(ValueError):
+            self.service.update_material_rights_status(project["id"], "frame_match", frame_material["id"], "maybe")
+        with self.assertRaises(ValueError):
+            self.service.list_project_library(project["id"], rights_status="maybe")
+        with self.assertRaises(KeyError):
+            self.service.update_material_rights_status(project["id"], "search_result", 999, "cleared")
+
 
 if __name__ == "__main__":
     unittest.main()

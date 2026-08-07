@@ -13,6 +13,7 @@ from .query import expand_query
 
 class LocalApiService:
     REVIEW_STATUSES = {"confirmed", "pending", "rejected"}
+    RIGHTS_STATUSES = {"unknown", "cleared", "needs_permission", "blocked"}
     MAX_MATERIAL_TAGS = 20
     MAX_MATERIAL_TAG_LENGTH = 40
     MAX_MATERIAL_NOTE_LENGTH = 1000
@@ -170,6 +171,46 @@ class LocalApiService:
             "tags": normalized_tags,
             "note": normalized_note,
         }
+    def update_material_rights_status(
+        self,
+        project_id: int,
+        source_type: str,
+        material_id: int,
+        rights_status: str,
+    ) -> dict[str, Any]:
+        self.get_project(project_id)
+        if rights_status not in self.RIGHTS_STATUSES:
+            raise ValueError("rights_status 只能是 unknown/cleared/needs_permission/blocked")
+        if source_type == "search_result":
+            existing = self.db.query_one(
+                "SELECT id FROM project_materials WHERE id = ? AND project_id = ?",
+                (material_id, project_id),
+            )
+            if not existing:
+                raise KeyError(f"material not found: {material_id}")
+            self.db.execute(
+                "UPDATE project_materials SET rights_status = ? WHERE id = ? AND project_id = ?",
+                (rights_status, material_id, project_id),
+            )
+        elif source_type == "frame_match":
+            existing = self.db.query_one(
+                "SELECT id FROM project_frame_matches WHERE id = ? AND project_id = ?",
+                (material_id, project_id),
+            )
+            if not existing:
+                raise KeyError(f"frame match material not found: {material_id}")
+            self.db.execute(
+                "UPDATE project_frame_matches SET rights_status = ? WHERE id = ? AND project_id = ?",
+                (rights_status, material_id, project_id),
+            )
+        else:
+            raise ValueError("source_type 只能是 search_result/frame_match")
+        return {
+            "project_id": project_id,
+            "source_type": source_type,
+            "material_id": material_id,
+            "rights_status": rights_status,
+        }
     def add_frame_match_material(
         self,
         project_id: int,
@@ -276,6 +317,7 @@ class LocalApiService:
         project_id: int,
         source_type: str | None = None,
         review_status: str | None = None,
+        rights_status: str | None = None,
         sort_by: str = "created_desc",
     ) -> dict[str, Any]:
         self.get_project(project_id)
@@ -328,6 +370,10 @@ class LocalApiService:
             items = [item for item in items if item["source_type"] == source_type]
         if review_status and review_status != "all":
             items = [item for item in items if item["review_status"] == review_status]
+        if rights_status and rights_status != "all":
+            if rights_status not in self.RIGHTS_STATUSES:
+                raise ValueError("rights_status 只能是 all/unknown/cleared/needs_permission/blocked")
+            items = [item for item in items if item["rights_status"] == rights_status]
         if sort_by == "created_asc":
             items = sorted(items, key=lambda item: item["created_at"])
         elif sort_by == "score_desc":
@@ -351,9 +397,10 @@ class LocalApiService:
         fmt: str,
         source_type: str | None = None,
         review_status: str | None = None,
+        rights_status: str | None = None,
         sort_by: str = "created_desc",
     ) -> str:
-        library = self.list_project_library(project_id, source_type, review_status, sort_by)
+        library = self.list_project_library(project_id, source_type, review_status, rights_status, sort_by)
         items = library["items"]
         if fmt == "json":
             return json.dumps(library, ensure_ascii=False, indent=2)

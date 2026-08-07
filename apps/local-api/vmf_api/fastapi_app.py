@@ -58,6 +58,9 @@ if FastAPI:
     class ReviewStatusRequest(BaseModel):
         review_status: str
 
+    class RightsStatusRequest(BaseModel):
+        rights_status: str
+
     class MaterialMetadataRequest(BaseModel):
         tags: list[str] = Field(default_factory=list)
         note: str = ""
@@ -127,16 +130,29 @@ if FastAPI:
         return service.list_materials(project_id)
 
     @app.get("/api/projects/{project_id}/library")
-    def list_project_library(project_id: int, source_type: str = "all", review_status: str = "all", sort_by: str = "created_desc"):
+    def list_project_library(
+        project_id: int,
+        source_type: str = "all",
+        review_status: str = "all",
+        rights_status: str = "all",
+        sort_by: str = "created_desc",
+    ):
         try:
-            return service.list_project_library(project_id, source_type, review_status, sort_by)
+            return service.list_project_library(project_id, source_type, review_status, rights_status, sort_by)
         except (KeyError, ValueError) as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     @app.get("/api/projects/{project_id}/library.{fmt}")
-    def export_project_library(project_id: int, fmt: str, source_type: str = "all", review_status: str = "all", sort_by: str = "created_desc"):
+    def export_project_library(
+        project_id: int,
+        fmt: str,
+        source_type: str = "all",
+        review_status: str = "all",
+        rights_status: str = "all",
+        sort_by: str = "created_desc",
+    ):
         try:
-            body = service.export_project_library(project_id, fmt, source_type, review_status, sort_by)
+            body = service.export_project_library(project_id, fmt, source_type, review_status, rights_status, sort_by)
         except (KeyError, ValueError) as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         media_type = {
@@ -150,6 +166,15 @@ if FastAPI:
     def update_material_review_status(project_id: int, source_type: str, material_id: int, request: ReviewStatusRequest):
         try:
             return service.update_material_review_status(project_id, source_type, material_id, request.review_status)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.post("/api/projects/{project_id}/library/{source_type}/{material_id}/rights-status")
+    def update_material_rights_status(project_id: int, source_type: str, material_id: int, request: RightsStatusRequest):
+        try:
+            return service.update_material_rights_status(project_id, source_type, material_id, request.rights_status)
         except KeyError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
         except ValueError as exc:

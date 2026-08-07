@@ -8,6 +8,7 @@ const librarySummary = document.querySelector("#library-summary");
 const libraryList = document.querySelector("#library-list");
 const libraryFilter = document.querySelector("#library-filter");
 const libraryReviewFilter = document.querySelector("#library-review-filter");
+const libraryRightsFilter = document.querySelector("#library-rights-filter");
 const librarySort = document.querySelector("#library-sort");
 const screenshotDropzone = document.querySelector("#screenshot-dropzone");
 let currentTaskId = null;
@@ -261,6 +262,15 @@ function reviewStatusLabel(status) {
   }[status] || "未知状态";
 }
 
+function rightsStatusLabel(status) {
+  return {
+    unknown: "未知",
+    cleared: "可用",
+    needs_permission: "需授权",
+    blocked: "不可用"
+  }[status] || "未知";
+}
+
 function renderLibrary(library) {
   if (!libraryList || !librarySummary) return;
   librarySummary.textContent = `共 ${library.total_count} 条：搜索收藏 ${library.search_result_count} 条，截图反查 ${library.frame_match_count} 条`;
@@ -283,6 +293,14 @@ function renderLibrary(library) {
         data-review-status="${status}"
       >${reviewStatusLabel(status)}</button>
     `).join("");
+    const rightsButtons = ["unknown", "cleared", "needs_permission", "blocked"].map((status) => `
+      <button
+        class="review-button ${item.rights_status === status ? "is-active" : ""}"
+        data-rights-source="${item.source_type}"
+        data-rights-material="${item.material_id}"
+        data-rights-status="${status}"
+      >${rightsStatusLabel(status)}</button>
+    `).join("");
     return `
       <article class="library-item">
         <div class="library-kind">${kind}</div>
@@ -291,8 +309,10 @@ function renderLibrary(library) {
         ${timestamp}
         ${score}
         <p>状态：${reviewStatusLabel(item.review_status)}</p>
+        <p>版权：${rightsStatusLabel(item.rights_status)}</p>
         <p>${escapeHtml(tags.join(" / ") || "未打标签")}</p>
         <div class="review-actions">${reviewButtons}</div>
+        <div class="review-actions">${rightsButtons}</div>
         <div class="metadata-editor">
           <label>
             标签
@@ -323,6 +343,7 @@ async function refreshLibrary() {
   const params = new URLSearchParams({
     source_type: libraryFilter?.value || "all",
     review_status: libraryReviewFilter?.value || "all",
+    rights_status: libraryRightsFilter?.value || "all",
     sort_by: librarySort?.value || "created_desc"
   });
   const library = await api(`/api/projects/${projectSelect.value}/library?${params.toString()}`);
@@ -338,6 +359,7 @@ function exportLibrary(fmt) {
   const params = new URLSearchParams({
     source_type: libraryFilter?.value || "all",
     review_status: libraryReviewFilter?.value || "all",
+    rights_status: libraryRightsFilter?.value || "all",
     sort_by: librarySort?.value || "created_desc"
   });
   window.open(`${apiBase}/api/projects/${projectSelect.value}/library.${fmt}?${params.toString()}`, "_blank");
@@ -354,6 +376,19 @@ async function updateLibraryReviewStatus(sourceType, materialId, reviewStatus) {
   });
   await refreshLibrary();
   statusEl.textContent = `已更新素材 ${materialId} 为${reviewStatusLabel(reviewStatus)}`;
+}
+
+async function updateLibraryRightsStatus(sourceType, materialId, rightsStatus) {
+  if (!projectSelect.value) {
+    statusEl.textContent = "请先选择项目再修改版权状态";
+    return;
+  }
+  await api(`/api/projects/${projectSelect.value}/library/${sourceType}/${materialId}/rights-status`, {
+    method: "POST",
+    body: JSON.stringify({ rights_status: rightsStatus })
+  });
+  await refreshLibrary();
+  statusEl.textContent = `已更新素材 ${materialId} 的版权状态为${rightsStatusLabel(rightsStatus)}`;
 }
 
 function parseTagInput(value) {
@@ -525,7 +560,7 @@ document.querySelector("#refresh-library").addEventListener("click", () => {
   });
 });
 
-[libraryFilter, libraryReviewFilter, librarySort].forEach((control) => {
+[libraryFilter, libraryReviewFilter, libraryRightsFilter, librarySort].forEach((control) => {
   control?.addEventListener("change", () => {
     refreshLibrary().catch((error) => {
       librarySummary.textContent = `项目素材刷新失败：${friendlyError(error)}`;
@@ -539,14 +574,23 @@ document.querySelectorAll("button[data-library-export]").forEach((button) => {
 
 libraryList?.addEventListener("click", async (event) => {
   const reviewButton = event.target.closest("button[data-review-status]");
+  const rightsButton = event.target.closest("button[data-rights-status]");
   const metadataButton = event.target.closest("button[data-save-metadata]");
-  if (!reviewButton && !metadataButton) return;
+  if (!reviewButton && !rightsButton && !metadataButton) return;
   try {
     if (reviewButton) {
       await updateLibraryReviewStatus(
         reviewButton.dataset.reviewSource,
         reviewButton.dataset.reviewMaterial,
         reviewButton.dataset.reviewStatus
+      );
+      return;
+    }
+    if (rightsButton) {
+      await updateLibraryRightsStatus(
+        rightsButton.dataset.rightsSource,
+        rightsButton.dataset.rightsMaterial,
+        rightsButton.dataset.rightsStatus
       );
       return;
     }

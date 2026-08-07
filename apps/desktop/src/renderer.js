@@ -66,6 +66,16 @@ function friendlyError(error) {
   return message;
 }
 
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&quot;",
+    "'": "&#39;"
+  }[char]));
+}
+
 async function uploadImage(file) {
   const body = new FormData();
   body.append("file", file);
@@ -263,6 +273,8 @@ function renderLibrary(library) {
     const score = item.combined_score == null ? "" : `<p>匹配分：${item.combined_score}</p>`;
     const timestamp = item.selected_timestamp_ms == null ? "" : `<p>时间点：${item.selected_timestamp_ms}ms</p>`;
     const href = item.source_type === "frame_match" ? item.source_url : item.source_url;
+    const note = item.note || "";
+    const tags = item.tags || [];
     const reviewButtons = ["pending", "confirmed", "rejected"].map((status) => `
       <button
         class="review-button ${item.review_status === status ? "is-active" : ""}"
@@ -274,14 +286,29 @@ function renderLibrary(library) {
     return `
       <article class="library-item">
         <div class="library-kind">${kind}</div>
-        <h3>${item.title || "未命名素材"}</h3>
-        <p>${item.note || "暂无备注"}</p>
+        <h3>${escapeHtml(item.title || "未命名素材")}</h3>
+        <p>${escapeHtml(note || "暂无备注")}</p>
         ${timestamp}
         ${score}
         <p>状态：${reviewStatusLabel(item.review_status)}</p>
-        <p>${(item.tags || []).join(" / ") || "未打标签"}</p>
+        <p>${escapeHtml(tags.join(" / ") || "未打标签")}</p>
         <div class="review-actions">${reviewButtons}</div>
-        <a href="${href}" target="_blank" rel="noreferrer">打开素材来源</a>
+        <div class="metadata-editor">
+          <label>
+            标签
+            <input data-metadata-tags value="${escapeHtml(tags.join("，"))}" placeholder="多个标签用逗号分隔" />
+          </label>
+          <label>
+            备注
+            <textarea data-metadata-note placeholder="补充可用理由、版权风险或剪辑建议">${escapeHtml(note)}</textarea>
+          </label>
+          <button
+            data-save-metadata
+            data-metadata-source="${item.source_type}"
+            data-metadata-material="${item.material_id}"
+          >保存标签备注</button>
+        </div>
+        <a href="${escapeHtml(href)}" target="_blank" rel="noreferrer">打开素材来源</a>
       </article>
     `;
   }).join("");
@@ -327,6 +354,26 @@ async function updateLibraryReviewStatus(sourceType, materialId, reviewStatus) {
   });
   await refreshLibrary();
   statusEl.textContent = `已更新素材 ${materialId} 为${reviewStatusLabel(reviewStatus)}`;
+}
+
+function parseTagInput(value) {
+  return String(value || "")
+    .split(/[，,]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+async function updateLibraryMetadata(sourceType, materialId, tags, note) {
+  if (!projectSelect.value) {
+    statusEl.textContent = "请先选择项目再修改素材信息";
+    return;
+  }
+  await api(`/api/projects/${projectSelect.value}/library/${sourceType}/${materialId}/metadata`, {
+    method: "POST",
+    body: JSON.stringify({ tags, note })
+  });
+  await refreshLibrary();
+  statusEl.textContent = `已保存素材 ${materialId} 的标签和备注`;
 }
 
 async function refreshProjects() {
@@ -491,16 +538,27 @@ document.querySelectorAll("button[data-library-export]").forEach((button) => {
 });
 
 libraryList?.addEventListener("click", async (event) => {
-  const button = event.target.closest("button[data-review-status]");
-  if (!button) return;
+  const reviewButton = event.target.closest("button[data-review-status]");
+  const metadataButton = event.target.closest("button[data-save-metadata]");
+  if (!reviewButton && !metadataButton) return;
   try {
-    await updateLibraryReviewStatus(
-      button.dataset.reviewSource,
-      button.dataset.reviewMaterial,
-      button.dataset.reviewStatus
+    if (reviewButton) {
+      await updateLibraryReviewStatus(
+        reviewButton.dataset.reviewSource,
+        reviewButton.dataset.reviewMaterial,
+        reviewButton.dataset.reviewStatus
+      );
+      return;
+    }
+    const item = metadataButton.closest(".library-item");
+    await updateLibraryMetadata(
+      metadataButton.dataset.metadataSource,
+      metadataButton.dataset.metadataMaterial,
+      parseTagInput(item.querySelector("[data-metadata-tags]")?.value),
+      item.querySelector("[data-metadata-note]")?.value || ""
     );
   } catch (error) {
-    librarySummary.textContent = `素材状态更新失败：${friendlyError(error)}`;
+    librarySummary.textContent = `素材更新失败：${friendlyError(error)}`;
   }
 });
 

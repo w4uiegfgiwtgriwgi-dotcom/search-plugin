@@ -58,6 +58,10 @@ if FastAPI:
     class ReviewStatusRequest(BaseModel):
         review_status: str
 
+    class MaterialMetadataRequest(BaseModel):
+        tags: list[str] = Field(default_factory=list)
+        note: str = ""
+
     class AnalyzeImageRequest(BaseModel):
         image_path: str
 
@@ -146,6 +150,15 @@ if FastAPI:
     def update_material_review_status(project_id: int, source_type: str, material_id: int, request: ReviewStatusRequest):
         try:
             return service.update_material_review_status(project_id, source_type, material_id, request.review_status)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.post("/api/projects/{project_id}/library/{source_type}/{material_id}/metadata")
+    def update_material_metadata(project_id: int, source_type: str, material_id: int, request: MaterialMetadataRequest):
+        try:
+            return service.update_material_metadata(project_id, source_type, material_id, request.tags, request.note)
         except KeyError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
         except ValueError as exc:

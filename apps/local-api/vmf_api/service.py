@@ -13,6 +13,9 @@ from .query import expand_query
 
 class LocalApiService:
     REVIEW_STATUSES = {"confirmed", "pending", "rejected"}
+    MAX_MATERIAL_TAGS = 20
+    MAX_MATERIAL_TAG_LENGTH = 40
+    MAX_MATERIAL_NOTE_LENGTH = 1000
 
     def __init__(self, db_path: str | Path = "./.local-data/video-material-finder.sqlite", adapters: dict[str, PlatformAdapter] | None = None):
         self.db = Database(db_path)
@@ -123,6 +126,49 @@ class LocalApiService:
             "source_type": source_type,
             "material_id": material_id,
             "review_status": review_status,
+        }
+    def update_material_metadata(
+        self,
+        project_id: int,
+        source_type: str,
+        material_id: int,
+        tags: list[str] | None = None,
+        note: str = "",
+    ) -> dict[str, Any]:
+        self.get_project(project_id)
+        normalized_tags = self._normalize_material_tags(tags or [])
+        normalized_note = self._normalize_material_note(note)
+        tags_json = json.dumps(normalized_tags, ensure_ascii=False)
+        if source_type == "search_result":
+            existing = self.db.query_one(
+                "SELECT id FROM project_materials WHERE id = ? AND project_id = ?",
+                (material_id, project_id),
+            )
+            if not existing:
+                raise KeyError(f"material not found: {material_id}")
+            self.db.execute(
+                "UPDATE project_materials SET tags_json = ?, note = ? WHERE id = ? AND project_id = ?",
+                (tags_json, normalized_note, material_id, project_id),
+            )
+        elif source_type == "frame_match":
+            existing = self.db.query_one(
+                "SELECT id FROM project_frame_matches WHERE id = ? AND project_id = ?",
+                (material_id, project_id),
+            )
+            if not existing:
+                raise KeyError(f"frame match material not found: {material_id}")
+            self.db.execute(
+                "UPDATE project_frame_matches SET tags_json = ?, note = ? WHERE id = ? AND project_id = ?",
+                (tags_json, normalized_note, material_id, project_id),
+            )
+        else:
+            raise ValueError("source_type 只能是 search_result/frame_match")
+        return {
+            "project_id": project_id,
+            "source_type": source_type,
+            "material_id": material_id,
+            "tags": normalized_tags,
+            "note": normalized_note,
         }
     def add_frame_match_material(
         self,
@@ -442,6 +488,26 @@ class LocalApiService:
         }
     def get_match(self, match_id: int) -> dict[str, Any]:
         return self.frame_matcher.get_match(match_id)
+    def _normalize_material_tags(self, tags: list[str]) -> list[str]:
+        normalized: list[str] = []
+        seen: set[str] = set()
+        for tag in tags:
+            cleaned = str(tag).strip()
+            if not cleaned:
+                continue
+            if len(cleaned) > self.MAX_MATERIAL_TAG_LENGTH:
+                raise ValueError(f"标签不能超过 {self.MAX_MATERIAL_TAG_LENGTH} 个字符")
+            if cleaned not in seen:
+                normalized.append(cleaned)
+                seen.add(cleaned)
+        if len(normalized) > self.MAX_MATERIAL_TAGS:
+            raise ValueError(f"标签不能超过 {self.MAX_MATERIAL_TAGS} 个")
+        return normalized
+    def _normalize_material_note(self, note: str) -> str:
+        normalized = str(note).strip()
+        if len(normalized) > self.MAX_MATERIAL_NOTE_LENGTH:
+            raise ValueError(f"备注不能超过 {self.MAX_MATERIAL_NOTE_LENGTH} 个字符")
+        return normalized
     def _insert_result(self, task_id: int, result: SearchResult) -> int:
         r = result.to_record()
         return self.db.execute("""

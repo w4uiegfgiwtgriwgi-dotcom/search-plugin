@@ -308,6 +308,48 @@ class Stage2MediaMatchingTest(unittest.TestCase):
         with self.assertRaises(KeyError):
             self.service.update_material_review_status(project["id"], "frame_match", 999, "pending")
 
+    def test_update_project_library_metadata(self):
+        project = self.service.create_project("metadata project")
+        task = self.service.create_search_task("air conditioner")
+        result = self.service.list_results(task["id"])[0]
+        search_material = self.service.add_material(project["id"], result["id"], tags=["old"], note="old note")
+
+        asset = self.service.analyze_image(self.query_frame_path)
+        match = self.service.find_frame_match(asset["id"], self.video_path, fps=1.0, threshold=ROBUSTNESS_THRESHOLD)
+        frame_material = self.service.add_frame_match_material(project["id"], match["id"], tags=["old frame"], note="old frame note")
+
+        updated_search = self.service.update_material_metadata(
+            project["id"],
+            "search_result",
+            search_material["id"],
+            tags=[" 空调 ", "可用", "空调", ""],
+            note="  可用于开场素材  ",
+        )
+        updated_frame = self.service.update_material_metadata(
+            project["id"],
+            "frame_match",
+            frame_material["id"],
+            tags=["截图反查", "高分"],
+            note="匹配帧可复核",
+        )
+        library = self.service.list_project_library(project["id"])
+        by_type = {item["source_type"]: item for item in library["items"]}
+
+        self.assertEqual(updated_search["tags"], ["空调", "可用"])
+        self.assertEqual(updated_search["note"], "可用于开场素材")
+        self.assertEqual(updated_frame["tags"], ["截图反查", "高分"])
+        self.assertEqual(by_type["search_result"]["tags"], ["空调", "可用"])
+        self.assertEqual(by_type["search_result"]["note"], "可用于开场素材")
+        self.assertEqual(by_type["frame_match"]["tags"], ["截图反查", "高分"])
+        self.assertEqual(by_type["frame_match"]["note"], "匹配帧可复核")
+
+        with self.assertRaises(ValueError):
+            self.service.update_material_metadata(project["id"], "unknown", search_material["id"], tags=[], note="")
+        with self.assertRaises(ValueError):
+            self.service.update_material_metadata(project["id"], "search_result", search_material["id"], tags=["x" * 41], note="")
+        with self.assertRaises(ValueError):
+            self.service.update_material_metadata(project["id"], "search_result", search_material["id"], tags=[], note="x" * 1001)
+
 
 if __name__ == "__main__":
     unittest.main()

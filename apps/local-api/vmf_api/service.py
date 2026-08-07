@@ -280,8 +280,12 @@ class LocalApiService:
               fm.timestamp_ms,
               fm.end_timestamp_ms,
               fm.match_type,
+              fm.phash_score,
+              fm.visual_score,
+              fm.text_score,
               fm.combined_score,
               fm.local_frame_path,
+              fm.evidence_json,
               ma.source_path AS query_image_path,
               ma.thumbnail_path AS query_thumbnail_path
             FROM project_frame_matches pfm
@@ -290,7 +294,7 @@ class LocalApiService:
             WHERE pfm.project_id = ?
             ORDER BY pfm.id DESC
         """, (project_id,))
-        return [loads_json_fields(row, ["tags_json"]) for row in rows]
+        return [loads_json_fields(row, ["tags_json", "evidence_json"]) for row in rows]
     def get_frame_match_material(self, material_id: int) -> dict[str, Any]:
         row = self.db.query_one("""
             SELECT
@@ -300,8 +304,12 @@ class LocalApiService:
               fm.timestamp_ms,
               fm.end_timestamp_ms,
               fm.match_type,
+              fm.phash_score,
+              fm.visual_score,
+              fm.text_score,
               fm.combined_score,
               fm.local_frame_path,
+              fm.evidence_json,
               ma.source_path AS query_image_path,
               ma.thumbnail_path AS query_thumbnail_path
             FROM project_frame_matches pfm
@@ -311,7 +319,7 @@ class LocalApiService:
         """, (material_id,))
         if not row:
             raise KeyError(f"frame match material not found: {material_id}")
-        return loads_json_fields(row, ["tags_json"])
+        return loads_json_fields(row, ["tags_json", "evidence_json"])
     def list_project_library(
         self,
         project_id: int,
@@ -356,7 +364,12 @@ class LocalApiService:
                 "end_timestamp_ms": item["end_timestamp_ms"],
                 "end_timecode": self._format_timecode(item["end_timestamp_ms"]),
                 "match_type": item["match_type"],
+                "phash_score": item["phash_score"],
+                "visual_score": item["visual_score"],
+                "text_score": item["text_score"],
                 "combined_score": item["combined_score"],
+                "evidence": item["evidence_json"],
+                "evidence_summary": self._summarize_match_evidence(item["evidence_json"]),
                 "review_status": item["review_status"],
                 "rights_status": item["rights_status"],
                 "tags": item["tags_json"],
@@ -432,6 +445,10 @@ class LocalApiService:
                 "timecode",
                 "end_timecode",
                 "combined_score",
+                "phash_score",
+                "visual_score",
+                "text_score",
+                "evidence_summary",
                 "review_status",
                 "rights_status",
                 "tags",
@@ -458,6 +475,8 @@ class LocalApiService:
                     lines.append(f"  - 时间码：{item['timecode']}")
                 if item.get("combined_score") is not None:
                     lines.append(f"  - 匹配分：{item['combined_score']}")
+                if item.get("evidence_summary"):
+                    lines.append(f"  - 证据：{item['evidence_summary']}")
                 if item.get("note"):
                     lines.append(f"  - 备注：{item['note']}")
             return "\n".join(lines) + "\n"
@@ -603,9 +622,27 @@ class LocalApiService:
             item.get("match_type"),
             item.get("timecode"),
             item.get("selected_timecode"),
+            item.get("evidence_summary"),
             *item.get("tags", []),
         ]
         return keyword in " ".join(str(part or "").lower() for part in searchable_parts)
+    def _summarize_match_evidence(self, evidence: dict[str, Any] | None) -> str:
+        if not evidence:
+            return ""
+        parts: list[str] = []
+        if evidence.get("frame_count") is not None:
+            parts.append(f"粗扫{evidence['frame_count']}帧")
+        if evidence.get("refined_frame_count") is not None:
+            parts.append(f"精排{evidence['refined_frame_count']}帧")
+        if evidence.get("fps") is not None:
+            parts.append(f"粗扫FPS {evidence['fps']}")
+        if evidence.get("refine_fps") is not None:
+            parts.append(f"精排FPS {evidence['refine_fps']}")
+        if evidence.get("threshold") is not None:
+            parts.append(f"阈值 {evidence['threshold']}")
+        if evidence.get("coarse_best_timestamp_ms") is not None:
+            parts.append(f"粗扫最佳 {self._format_timecode(evidence['coarse_best_timestamp_ms'])}")
+        return "，".join(parts)
     def _format_timecode(self, timestamp_ms: int | None) -> str | None:
         if timestamp_ms is None:
             return None

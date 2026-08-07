@@ -25,6 +25,8 @@ textarea { width: 100%; min-height: 104px; box-sizing: border-box; border: 1px s
 .library-tools label { display: grid; gap: 6px; font-size: 13px; color: #48525e; }
 .library-tools select { margin-top: 0; }
 .library-summary { color: #5e6a75; font-size: 13px; margin-bottom: 10px; }
+.summary-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+.summary-chip { border: 1px solid #d7dde3; border-radius: 6px; background: #fff; color: #26313d; padding: 5px 8px; }
 .library-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
 .library-item { border: 1px solid #d7dde3; border-radius: 8px; padding: 12px; background: #f8fafc; }
 .library-item h3 { font-size: 15px; margin: 6px 0; }

@@ -271,9 +271,28 @@ function rightsStatusLabel(status) {
   }[status] || "未知";
 }
 
+function renderLibrarySummary(library) {
+  const summary = library.summary || {};
+  const review = summary.by_review_status || {};
+  const rights = summary.by_rights_status || {};
+  librarySummary.innerHTML = `
+    <div class="summary-grid">
+      <span class="summary-chip">当前 ${library.total_count} / 全部 ${summary.all_count ?? library.total_count}</span>
+      <span class="summary-chip">搜索 ${library.search_result_count}</span>
+      <span class="summary-chip">截图 ${library.frame_match_count}</span>
+      <span class="summary-chip">待复核 ${review.pending ?? 0}</span>
+      <span class="summary-chip">已确认 ${review.confirmed ?? 0}</span>
+      <span class="summary-chip">已拒绝 ${review.rejected ?? 0}</span>
+      <span class="summary-chip">可用 ${rights.cleared ?? 0}</span>
+      <span class="summary-chip">需授权 ${rights.needs_permission ?? 0}</span>
+      <span class="summary-chip">不可用 ${rights.blocked ?? 0}</span>
+    </div>
+  `;
+}
+
 function renderLibrary(library) {
   if (!libraryList || !librarySummary) return;
-  librarySummary.textContent = `共 ${library.total_count} 条：搜索收藏 ${library.search_result_count} 条，截图反查 ${library.frame_match_count} 条`;
+  renderLibrarySummary(library);
   if (library.items.length === 0) {
     libraryList.innerHTML = `<p class="meta">当前项目还没有收藏素材</p>`;
     return;

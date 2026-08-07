@@ -248,6 +248,10 @@ class Stage2MediaMatchingTest(unittest.TestCase):
         self.assertEqual(library["search_result_count"], 1)
         self.assertEqual(library["frame_match_count"], 1)
         self.assertEqual(source_types, {"search_result", "frame_match"})
+        self.assertEqual(library["summary"]["all_count"], 2)
+        self.assertEqual(library["summary"]["filtered_count"], 2)
+        self.assertEqual(library["summary"]["by_source_type"]["search_result"], 1)
+        self.assertEqual(library["summary"]["by_source_type"]["frame_match"], 1)
 
         frame_only = self.service.list_project_library(project["id"], source_type="frame_match")
         score_sorted = self.service.list_project_library(project["id"], sort_by="score_desc")
@@ -257,6 +261,8 @@ class Stage2MediaMatchingTest(unittest.TestCase):
 
         self.assertEqual(frame_only["total_count"], 1)
         self.assertEqual(frame_only["items"][0]["source_type"], "frame_match")
+        self.assertEqual(frame_only["summary"]["all_count"], 2)
+        self.assertEqual(frame_only["summary"]["filtered_count"], 1)
         self.assertEqual(score_sorted["items"][0]["source_type"], "frame_match")
         self.assertIn("source_type", csv_export)
         self.assertIn("frame_match", md_export)
@@ -378,6 +384,10 @@ class Stage2MediaMatchingTest(unittest.TestCase):
 
         self.assertEqual(updated_search["rights_status"], "needs_permission")
         self.assertEqual(updated_frame["rights_status"], "cleared")
+        self.assertEqual(needs_permission["summary"]["all_count"], 2)
+        self.assertEqual(needs_permission["summary"]["filtered_count"], 1)
+        self.assertEqual(needs_permission["summary"]["by_rights_status"]["needs_permission"], 1)
+        self.assertEqual(needs_permission["summary"]["by_rights_status"]["cleared"], 1)
         self.assertEqual(needs_permission["total_count"], 1)
         self.assertEqual(needs_permission["items"][0]["source_type"], "search_result")
         self.assertEqual(cleared["total_count"], 1)

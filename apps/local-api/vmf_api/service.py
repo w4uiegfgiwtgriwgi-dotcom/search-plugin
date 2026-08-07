@@ -363,7 +363,8 @@ class LocalApiService:
             }
             for item in self.list_frame_match_materials(project_id)
         ]
-        items = [*search_materials, *frame_materials]
+        all_items = [*search_materials, *frame_materials]
+        items = list(all_items)
         if source_type and source_type != "all":
             if source_type not in {"search_result", "frame_match"}:
                 raise ValueError("source_type 只能是 all/search_result/frame_match")
@@ -389,6 +390,7 @@ class LocalApiService:
             "total_count": len(items),
             "search_result_count": sum(1 for item in items if item["source_type"] == "search_result"),
             "frame_match_count": sum(1 for item in items if item["source_type"] == "frame_match"),
+            "summary": self._build_library_summary(all_items, items),
             "items": items,
         }
     def export_project_library(
@@ -555,6 +557,25 @@ class LocalApiService:
         if len(normalized) > self.MAX_MATERIAL_NOTE_LENGTH:
             raise ValueError(f"备注不能超过 {self.MAX_MATERIAL_NOTE_LENGTH} 个字符")
         return normalized
+    def _build_library_summary(self, all_items: list[dict[str, Any]], filtered_items: list[dict[str, Any]]) -> dict[str, Any]:
+        return {
+            "all_count": len(all_items),
+            "filtered_count": len(filtered_items),
+            "by_source_type": {
+                "search_result": self._count_library_items(all_items, "source_type", "search_result"),
+                "frame_match": self._count_library_items(all_items, "source_type", "frame_match"),
+            },
+            "by_review_status": {
+                status: self._count_library_items(all_items, "review_status", status)
+                for status in sorted(self.REVIEW_STATUSES)
+            },
+            "by_rights_status": {
+                status: self._count_library_items(all_items, "rights_status", status)
+                for status in sorted(self.RIGHTS_STATUSES)
+            },
+        }
+    def _count_library_items(self, items: list[dict[str, Any]], key: str, value: str) -> int:
+        return sum(1 for item in items if item.get(key) == value)
     def _insert_result(self, task_id: int, result: SearchResult) -> int:
         r = result.to_record()
         return self.db.execute("""

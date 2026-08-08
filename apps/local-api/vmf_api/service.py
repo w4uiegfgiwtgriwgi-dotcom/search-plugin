@@ -503,9 +503,11 @@ class LocalApiService:
                 f"- 搜索收藏：{library['search_result_count']} 条",
                 f"- 截图反查：{library['frame_match_count']} 条",
                 "",
-                "## 素材列表",
-                "",
             ]
+            timeline_lines = self._build_frame_match_timeline_lines(items)
+            if timeline_lines:
+                lines.extend(["## 截图反查时间线", "", *timeline_lines, ""])
+            lines.extend(["## 素材列表", ""])
             for item in items:
                 tags = " / ".join(item.get("tags") or []) or "未打标签"
                 lines.append(f"- **{item['title']}** ({item.get('source_type_label') or item['source_type']})")
@@ -665,6 +667,18 @@ class LocalApiService:
         }
     def _count_library_items(self, items: list[dict[str, Any]], key: str, value: str) -> int:
         return sum(1 for item in items if item.get(key) == value)
+    def _build_frame_match_timeline_lines(self, items: list[dict[str, Any]]) -> list[str]:
+        frame_items = [item for item in items if item.get("source_type") == "frame_match"]
+        frame_items.sort(key=lambda item: self._timestamp_sort_value(item, reverse=False))
+        lines: list[str] = []
+        for item in frame_items:
+            timecode = item.get("timecode") or item.get("selected_timecode") or "未知时间"
+            duration = item.get("duration_timecode") or "未知时长"
+            confidence = item.get("match_confidence_label") or "未知可信度"
+            score = item.get("combined_score")
+            score_text = f"，匹配分 {score}" if score is not None else ""
+            lines.append(f"- {timecode} · {duration} · {confidence}{score_text} · {item['title']}")
+        return lines
     def _build_library_filters(
         self,
         source_type: str | None,

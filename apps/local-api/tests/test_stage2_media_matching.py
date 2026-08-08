@@ -291,6 +291,8 @@ class Stage2MediaMatchingTest(unittest.TestCase):
         self.assertIn("导出概览", md_export)
         self.assertIn("导出条件", md_export)
         self.assertIn("当前导出：1 条", md_export)
+        self.assertIn("截图反查时间线", md_export)
+        self.assertLess(md_export.index("截图反查时间线"), md_export.index("素材列表"))
         self.assertIn("已确认", md_export)
         self.assertIn("未知", md_export)
         self.assertIn("时间码", md_export)

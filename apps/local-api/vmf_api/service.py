@@ -364,6 +364,8 @@ class LocalApiService:
                 "timecode": self._format_timecode(item["timestamp_ms"]),
                 "end_timestamp_ms": item["end_timestamp_ms"],
                 "end_timecode": self._format_timecode(item["end_timestamp_ms"]),
+                "duration_ms": self._duration_ms(item["timestamp_ms"], item["end_timestamp_ms"]),
+                "duration_timecode": self._format_timecode(self._duration_ms(item["timestamp_ms"], item["end_timestamp_ms"])),
                 "match_type": item["match_type"],
                 "phash_score": item["phash_score"],
                 "visual_score": item["visual_score"],
@@ -452,6 +454,8 @@ class LocalApiService:
                 "selected_timecode",
                 "timecode",
                 "end_timecode",
+                "duration_ms",
+                "duration_timecode",
                 "combined_score",
                 "phash_score",
                 "visual_score",
@@ -483,6 +487,8 @@ class LocalApiService:
                     lines.append(f"  - 时间点：{item['selected_timestamp_ms']}ms")
                 if item.get("timecode"):
                     lines.append(f"  - 时间码：{item['timecode']}")
+                if item.get("duration_timecode"):
+                    lines.append(f"  - 时长：{item['duration_timecode']}")
                 if item.get("combined_score") is not None:
                     lines.append(f"  - 匹配分：{item['combined_score']}")
                 if item.get("match_confidence_label"):
@@ -638,6 +644,7 @@ class LocalApiService:
             item.get("match_type"),
             item.get("timecode"),
             item.get("selected_timecode"),
+            item.get("duration_timecode"),
             item.get("match_confidence"),
             item.get("match_confidence_label"),
             item.get("evidence_summary"),
@@ -688,6 +695,10 @@ class LocalApiService:
         minutes = total_minutes % 60
         hours = total_minutes // 60
         return f"{hours:02d}:{minutes:02d}:{seconds:02d}.{milliseconds:03d}"
+    def _duration_ms(self, start_ms: int | None, end_ms: int | None) -> int | None:
+        if start_ms is None or end_ms is None:
+            return None
+        return max(0, int(end_ms) - int(start_ms))
     def _timestamp_sort_value(self, item: dict[str, Any], reverse: bool) -> int:
         timestamp = item.get("selected_timestamp_ms")
         if timestamp is None:

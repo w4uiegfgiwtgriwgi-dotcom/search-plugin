@@ -313,6 +313,7 @@ function renderLibrary(library) {
     const evidence = item.evidence_summary ? `<p>证据：${escapeHtml(item.evidence_summary)}</p>` : "";
     const timeLabel = item.timecode || item.selected_timecode;
     const timestamp = item.selected_timestamp_ms == null ? "" : `<p>时间点：${timeLabel || ""} (${item.selected_timestamp_ms}ms)</p>`;
+    const duration = item.duration_timecode ? `<p>时长：${item.duration_timecode} (${item.duration_ms}ms)</p>` : "";
     const href = item.source_type === "frame_match" ? item.source_url : item.source_url;
     const note = item.note || "";
     const tags = item.tags || [];
@@ -338,6 +339,7 @@ function renderLibrary(library) {
         <h3>${escapeHtml(item.title || "未命名素材")}</h3>
         <p>${escapeHtml(note || "暂无备注")}</p>
         ${timestamp}
+        ${duration}
         ${score}
         ${confidence}
         ${scoreDetails}

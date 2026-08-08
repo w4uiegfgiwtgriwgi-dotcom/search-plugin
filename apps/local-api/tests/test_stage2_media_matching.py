@@ -255,6 +255,8 @@ class Stage2MediaMatchingTest(unittest.TestCase):
         self.assertEqual(sum(library["summary"]["by_match_confidence"].values()), 1)
         self.assertEqual(library["filters"]["source_type"], "all")
         self.assertIn("来源=全部", library["filter_summary"])
+        self.assertEqual(len(library["timeline"]), 1)
+        self.assertEqual(library["timeline"][0]["title"], Path(self.video_path).name)
 
         frame_only = self.service.list_project_library(project["id"], source_type="frame_match")
         score_sorted = self.service.list_project_library(project["id"], sort_by="score_desc")
@@ -301,6 +303,8 @@ class Stage2MediaMatchingTest(unittest.TestCase):
         self.assertIn('"duration_ms"', json_export)
         self.assertIn('"filters"', json_export)
         self.assertIn('"filter_summary"', json_export)
+        self.assertIn('"timeline"', json_export)
+        self.assertIn('"duration_timecode"', json_export)
         self.assertIn('"total_count": 2', json_export)
 
 

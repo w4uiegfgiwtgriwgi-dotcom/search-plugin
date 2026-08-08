@@ -278,6 +278,18 @@ function renderLibrarySummary(library) {
   const review = summary.by_review_status || {};
   const rights = summary.by_rights_status || {};
   const confidence = summary.by_match_confidence || {};
+  const timeline = library.timeline || [];
+  const timelineHtml = timeline.length === 0 ? "" : `
+    <div class="library-timeline">
+      ${timeline.slice(0, 8).map((item) => `
+        <div class="timeline-item">
+          <strong>${escapeHtml(item.timecode || "未知时间")}</strong>
+          <span>${escapeHtml(item.duration_timecode || "未知时长")} · ${escapeHtml(item.match_confidence_label || "未知可信度")}</span>
+          <span>${escapeHtml(item.title || "未命名素材")}</span>
+        </div>
+      `).join("")}
+    </div>
+  `;
   librarySummary.innerHTML = `
     <div class="summary-grid">
       <span class="summary-chip">当前 ${library.total_count} / 全部 ${summary.all_count ?? library.total_count}</span>
@@ -293,6 +305,7 @@ function renderLibrarySummary(library) {
       <span class="summary-chip">需授权 ${rights.needs_permission ?? 0}</span>
       <span class="summary-chip">不可用 ${rights.blocked ?? 0}</span>
     </div>
+    ${timelineHtml}
   `;
 }
 

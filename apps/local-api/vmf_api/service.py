@@ -437,6 +437,7 @@ class LocalApiService:
             "filters": self._build_library_filters(source_type, review_status, rights_status, match_confidence, keyword, sort_by),
             "filter_summary": self._library_filter_summary(source_type, review_status, rights_status, match_confidence, keyword, sort_by),
             "summary": self._build_library_summary(all_items, items),
+            "timeline": self._build_frame_match_timeline(items),
             "items": items,
         }
     def export_project_library(
@@ -667,12 +668,31 @@ class LocalApiService:
         }
     def _count_library_items(self, items: list[dict[str, Any]], key: str, value: str) -> int:
         return sum(1 for item in items if item.get(key) == value)
-    def _build_frame_match_timeline_lines(self, items: list[dict[str, Any]]) -> list[str]:
+    def _build_frame_match_timeline(self, items: list[dict[str, Any]]) -> list[dict[str, Any]]:
         frame_items = [item for item in items if item.get("source_type") == "frame_match"]
         frame_items.sort(key=lambda item: self._timestamp_sort_value(item, reverse=False))
-        lines: list[str] = []
+        timeline: list[dict[str, Any]] = []
         for item in frame_items:
-            timecode = item.get("timecode") or item.get("selected_timecode") or "未知时间"
+            timeline.append({
+                "material_id": item["material_id"],
+                "match_id": item.get("match_id"),
+                "title": item["title"],
+                "source_url": item["source_url"],
+                "timestamp_ms": item.get("timestamp_ms"),
+                "timecode": item.get("timecode") or item.get("selected_timecode"),
+                "end_timestamp_ms": item.get("end_timestamp_ms"),
+                "end_timecode": item.get("end_timecode"),
+                "duration_ms": item.get("duration_ms"),
+                "duration_timecode": item.get("duration_timecode"),
+                "combined_score": item.get("combined_score"),
+                "match_confidence": item.get("match_confidence"),
+                "match_confidence_label": item.get("match_confidence_label"),
+            })
+        return timeline
+    def _build_frame_match_timeline_lines(self, items: list[dict[str, Any]]) -> list[str]:
+        lines: list[str] = []
+        for item in self._build_frame_match_timeline(items):
+            timecode = item.get("timecode") or "未知时间"
             duration = item.get("duration_timecode") or "未知时长"
             confidence = item.get("match_confidence_label") or "未知可信度"
             score = item.get("combined_score")

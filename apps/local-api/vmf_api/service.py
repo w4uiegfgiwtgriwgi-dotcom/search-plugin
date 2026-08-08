@@ -438,6 +438,7 @@ class LocalApiService:
             "filter_summary": self._library_filter_summary(source_type, review_status, rights_status, match_confidence, keyword, sort_by),
             "summary": self._build_library_summary(all_items, items),
             "timeline": self._build_frame_match_timeline(items),
+            "action_items": self._build_library_action_items(items),
             "items": items,
         }
     def export_project_library(
@@ -506,6 +507,9 @@ class LocalApiService:
                 "",
             ]
             timeline_lines = self._build_frame_match_timeline_lines(items)
+            action_lines = self._build_library_action_lines(items)
+            if action_lines:
+                lines.extend(["## 待处理清单", "", *action_lines, ""])
             if timeline_lines:
                 lines.extend(["## 截图反查时间线", "", *timeline_lines, ""])
             lines.extend(["## 素材列表", ""])
@@ -668,6 +672,52 @@ class LocalApiService:
         }
     def _count_library_items(self, items: list[dict[str, Any]], key: str, value: str) -> int:
         return sum(1 for item in items if item.get(key) == value)
+    def _build_library_action_items(self, items: list[dict[str, Any]], limit: int = 5) -> dict[str, Any]:
+        groups = {
+            "pending_review": [item for item in items if item.get("review_status") == "pending"],
+            "rights_attention": [item for item in items if item.get("rights_status") in {"needs_permission", "blocked"}],
+            "low_confidence": [item for item in items if item.get("match_confidence") == "low"],
+        }
+        return {
+            "counts": {name: len(group) for name, group in groups.items()},
+            **{name: [self._action_item_brief(item) for item in group[:limit]] for name, group in groups.items()},
+        }
+    def _action_item_brief(self, item: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "source_type": item.get("source_type"),
+            "source_type_label": item.get("source_type_label"),
+            "material_id": item.get("material_id"),
+            "title": item.get("title"),
+            "source_url": item.get("source_url"),
+            "review_status": item.get("review_status"),
+            "review_status_label": item.get("review_status_label"),
+            "rights_status": item.get("rights_status"),
+            "rights_status_label": item.get("rights_status_label"),
+            "match_confidence": item.get("match_confidence"),
+            "match_confidence_label": item.get("match_confidence_label"),
+            "timecode": item.get("timecode") or item.get("selected_timecode"),
+            "duration_timecode": item.get("duration_timecode"),
+            "combined_score": item.get("combined_score"),
+        }
+    def _build_library_action_lines(self, items: list[dict[str, Any]]) -> list[str]:
+        action_items = self._build_library_action_items(items)
+        labels = {
+            "pending_review": "待复核",
+            "rights_attention": "版权需处理",
+            "low_confidence": "低可信",
+        }
+        lines: list[str] = []
+        for group_name, label in labels.items():
+            count = action_items["counts"][group_name]
+            if count == 0:
+                continue
+            lines.append(f"- {label}：{count} 条")
+            for item in action_items[group_name]:
+                timecode = f" @ {item['timecode']}" if item.get("timecode") else ""
+                confidence = f"，{item['match_confidence_label']}" if item.get("match_confidence_label") else ""
+                rights = f"，版权：{item['rights_status_label']}" if item.get("rights_status_label") else ""
+                lines.append(f"  - {item['title']}{timecode}{confidence}{rights}")
+        return lines
     def _build_frame_match_timeline(self, items: list[dict[str, Any]]) -> list[dict[str, Any]]:
         frame_items = [item for item in items if item.get("source_type") == "frame_match"]
         frame_items.sort(key=lambda item: self._timestamp_sort_value(item, reverse=False))

@@ -257,6 +257,8 @@ class Stage2MediaMatchingTest(unittest.TestCase):
         self.assertIn("来源=全部", library["filter_summary"])
         self.assertEqual(len(library["timeline"]), 1)
         self.assertEqual(library["timeline"][0]["title"], Path(self.video_path).name)
+        self.assertEqual(library["action_items"]["counts"]["pending_review"], 1)
+        self.assertEqual(library["action_items"]["pending_review"][0]["source_type"], "search_result")
 
         frame_only = self.service.list_project_library(project["id"], source_type="frame_match")
         score_sorted = self.service.list_project_library(project["id"], sort_by="score_desc")
@@ -295,6 +297,7 @@ class Stage2MediaMatchingTest(unittest.TestCase):
         self.assertIn("当前导出：1 条", md_export)
         self.assertIn("截图反查时间线", md_export)
         self.assertLess(md_export.index("截图反查时间线"), md_export.index("素材列表"))
+        self.assertIn("待处理清单", self.service.export_project_library(project["id"], "md"))
         self.assertIn("已确认", md_export)
         self.assertIn("未知", md_export)
         self.assertIn("时间码", md_export)
@@ -304,6 +307,7 @@ class Stage2MediaMatchingTest(unittest.TestCase):
         self.assertIn('"filters"', json_export)
         self.assertIn('"filter_summary"', json_export)
         self.assertIn('"timeline"', json_export)
+        self.assertIn('"action_items"', json_export)
         self.assertIn('"duration_timecode"', json_export)
         self.assertIn('"total_count": 2', json_export)
 

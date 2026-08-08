@@ -279,6 +279,24 @@ function renderLibrarySummary(library) {
   const rights = summary.by_rights_status || {};
   const confidence = summary.by_match_confidence || {};
   const timeline = library.timeline || [];
+  const actions = library.action_items || { counts: {} };
+  const actionCounts = actions.counts || {};
+  const actionTotal = (actionCounts.pending_review || 0) + (actionCounts.rights_attention || 0) + (actionCounts.low_confidence || 0);
+  const actionHtml = actionTotal === 0 ? "" : `
+    <div class="library-actions">
+      <strong>待处理</strong>
+      <span>待复核 ${actionCounts.pending_review || 0}</span>
+      <span>版权需处理 ${actionCounts.rights_attention || 0}</span>
+      <span>低可信 ${actionCounts.low_confidence || 0}</span>
+      ${["pending_review", "rights_attention", "low_confidence"].flatMap((group) => actions[group] || []).slice(0, 6).map((item) => `
+        <div class="action-item">
+          <span>${escapeHtml(item.source_type_label || "")}</span>
+          <span>${escapeHtml(item.timecode || item.review_status_label || item.rights_status_label || item.match_confidence_label || "")}</span>
+          <span>${escapeHtml(item.title || "未命名素材")}</span>
+        </div>
+      `).join("")}
+    </div>
+  `;
   const timelineHtml = timeline.length === 0 ? "" : `
     <div class="library-timeline">
       ${timeline.slice(0, 8).map((item) => `
@@ -305,6 +323,7 @@ function renderLibrarySummary(library) {
       <span class="summary-chip">需授权 ${rights.needs_permission ?? 0}</span>
       <span class="summary-chip">不可用 ${rights.blocked ?? 0}</span>
     </div>
+    ${actionHtml}
     ${timelineHtml}
   `;
 }

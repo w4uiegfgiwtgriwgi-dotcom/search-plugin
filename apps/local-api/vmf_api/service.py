@@ -409,6 +409,10 @@ class LocalApiService:
             items = sorted(items, key=lambda item: item["created_at"])
         elif sort_by == "score_desc":
             items = sorted(items, key=lambda item: item.get("combined_score") or -1, reverse=True)
+        elif sort_by == "confidence_desc":
+            items = sorted(items, key=lambda item: self._confidence_sort_value(item, reverse=True), reverse=True)
+        elif sort_by == "confidence_asc":
+            items = sorted(items, key=lambda item: self._confidence_sort_value(item, reverse=False))
         elif sort_by == "title_asc":
             items = sorted(items, key=lambda item: item["title"])
         elif sort_by == "time_asc":
@@ -418,7 +422,7 @@ class LocalApiService:
         elif sort_by == "created_desc":
             items = sorted(items, key=lambda item: item["created_at"], reverse=True)
         else:
-            raise ValueError("sort_by 只能是 created_desc/created_asc/score_desc/title_asc/time_asc/time_desc")
+            raise ValueError("sort_by 只能是 created_desc/created_asc/score_desc/confidence_desc/confidence_asc/title_asc/time_asc/time_desc")
         return {
             "project_id": project_id,
             "total_count": len(items),
@@ -635,6 +639,12 @@ class LocalApiService:
         }
     def _count_library_items(self, items: list[dict[str, Any]], key: str, value: str) -> int:
         return sum(1 for item in items if item.get(key) == value)
+    def _confidence_sort_value(self, item: dict[str, Any], reverse: bool) -> int:
+        order = {"low": 1, "medium": 2, "high": 3}
+        value = order.get(item.get("match_confidence"), 0)
+        if value == 0:
+            return -1 if reverse else 99
+        return value
     def _library_item_matches_keyword(self, item: dict[str, Any], keyword: str) -> bool:
         searchable_parts = [
             item.get("title"),

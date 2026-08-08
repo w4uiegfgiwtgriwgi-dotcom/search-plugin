@@ -508,6 +508,25 @@ class Stage2MediaMatchingTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.service.list_project_library(project["id"], match_confidence="maybe")
 
+    def test_project_library_sorts_by_match_confidence(self):
+        project = self.service.create_project("confidence sort project")
+        task = self.service.create_search_task("air conditioner")
+        result = self.service.list_results(task["id"])[0]
+        self.service.add_material(project["id"], result["id"], tags=["search"], note="no confidence")
+
+        asset = self.service.analyze_image(self.query_frame_path)
+        match = self.service.find_frame_match(asset["id"], self.video_path, fps=1.0, threshold=ROBUSTNESS_THRESHOLD)
+        self.service.add_frame_match_material(project["id"], match["id"], tags=["frame"], note="has confidence")
+
+        desc = self.service.list_project_library(project["id"], sort_by="confidence_desc")
+        asc = self.service.list_project_library(project["id"], sort_by="confidence_asc")
+
+        self.assertEqual(desc["items"][0]["source_type"], "frame_match")
+        self.assertIn(desc["items"][0]["match_confidence"], {"high", "medium", "low"})
+        self.assertEqual(desc["items"][-1]["source_type"], "search_result")
+        self.assertEqual(asc["items"][0]["source_type"], "frame_match")
+        self.assertEqual(asc["items"][-1]["source_type"], "search_result")
+
 
 if __name__ == "__main__":
     unittest.main()

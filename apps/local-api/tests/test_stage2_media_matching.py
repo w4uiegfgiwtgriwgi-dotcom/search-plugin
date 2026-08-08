@@ -252,6 +252,7 @@ class Stage2MediaMatchingTest(unittest.TestCase):
         self.assertEqual(library["summary"]["filtered_count"], 2)
         self.assertEqual(library["summary"]["by_source_type"]["search_result"], 1)
         self.assertEqual(library["summary"]["by_source_type"]["frame_match"], 1)
+        self.assertEqual(sum(library["summary"]["by_match_confidence"].values()), 1)
 
         frame_only = self.service.list_project_library(project["id"], source_type="frame_match")
         score_sorted = self.service.list_project_library(project["id"], sort_by="score_desc")
@@ -493,6 +494,7 @@ class Stage2MediaMatchingTest(unittest.TestCase):
         self.assertEqual(filtered["items"][0]["match_confidence"], confidence)
         self.assertEqual(filtered["summary"]["all_count"], 2)
         self.assertEqual(filtered["summary"]["filtered_count"], 1)
+        self.assertEqual(filtered["summary"]["by_match_confidence"][confidence], 1)
         self.assertEqual(empty["total_count"], 0)
         self.assertIn(f'"match_confidence": "{confidence}"', json_export)
 

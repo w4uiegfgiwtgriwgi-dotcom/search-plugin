@@ -277,11 +277,15 @@ function renderLibrarySummary(library) {
   const summary = library.summary || {};
   const review = summary.by_review_status || {};
   const rights = summary.by_rights_status || {};
+  const confidence = summary.by_match_confidence || {};
   librarySummary.innerHTML = `
     <div class="summary-grid">
       <span class="summary-chip">当前 ${library.total_count} / 全部 ${summary.all_count ?? library.total_count}</span>
       <span class="summary-chip">搜索 ${library.search_result_count}</span>
       <span class="summary-chip">截图 ${library.frame_match_count}</span>
+      <span class="summary-chip">高可信 ${confidence.high ?? 0}</span>
+      <span class="summary-chip">中可信 ${confidence.medium ?? 0}</span>
+      <span class="summary-chip">低可信 ${confidence.low ?? 0}</span>
       <span class="summary-chip">待复核 ${review.pending ?? 0}</span>
       <span class="summary-chip">已确认 ${review.confirmed ?? 0}</span>
       <span class="summary-chip">已拒绝 ${review.rejected ?? 0}</span>

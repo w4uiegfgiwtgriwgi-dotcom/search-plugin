@@ -622,6 +622,10 @@ class LocalApiService:
                 status: self._count_library_items(all_items, "rights_status", status)
                 for status in sorted(self.RIGHTS_STATUSES)
             },
+            "by_match_confidence": {
+                status: self._count_library_items(all_items, "match_confidence", status)
+                for status in ["high", "medium", "low"]
+            },
         }
     def _count_library_items(self, items: list[dict[str, Any]], key: str, value: str) -> int:
         return sum(1 for item in items if item.get(key) == value)

@@ -253,6 +253,8 @@ class Stage2MediaMatchingTest(unittest.TestCase):
         self.assertEqual(library["summary"]["by_source_type"]["search_result"], 1)
         self.assertEqual(library["summary"]["by_source_type"]["frame_match"], 1)
         self.assertEqual(sum(library["summary"]["by_match_confidence"].values()), 1)
+        self.assertEqual(library["filters"]["source_type"], "all")
+        self.assertIn("来源=全部", library["filter_summary"])
 
         frame_only = self.service.list_project_library(project["id"], source_type="frame_match")
         score_sorted = self.service.list_project_library(project["id"], sort_by="score_desc")
@@ -286,12 +288,17 @@ class Stage2MediaMatchingTest(unittest.TestCase):
         self.assertIn("phash_score", csv_export)
         self.assertIn("match_confidence", csv_export)
         self.assertIn("截图反查", md_export)
+        self.assertIn("导出概览", md_export)
+        self.assertIn("导出条件", md_export)
+        self.assertIn("当前导出：1 条", md_export)
         self.assertIn("已确认", md_export)
         self.assertIn("未知", md_export)
         self.assertIn("时间码", md_export)
         self.assertIn("可信度", md_export)
         self.assertIn("证据", md_export)
         self.assertIn('"duration_ms"', json_export)
+        self.assertIn('"filters"', json_export)
+        self.assertIn('"filter_summary"', json_export)
         self.assertIn('"total_count": 2', json_export)
 
 

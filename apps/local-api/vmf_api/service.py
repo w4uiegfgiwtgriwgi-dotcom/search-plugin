@@ -434,6 +434,8 @@ class LocalApiService:
             "total_count": len(items),
             "search_result_count": sum(1 for item in items if item["source_type"] == "search_result"),
             "frame_match_count": sum(1 for item in items if item["source_type"] == "frame_match"),
+            "filters": self._build_library_filters(source_type, review_status, rights_status, match_confidence, keyword, sort_by),
+            "filter_summary": self._library_filter_summary(source_type, review_status, rights_status, match_confidence, keyword, sort_by),
             "summary": self._build_library_summary(all_items, items),
             "items": items,
         }
@@ -490,7 +492,20 @@ class LocalApiService:
                 writer.writerow(copied)
             return output.getvalue()
         if fmt == "md":
-            lines = [f"# 项目 {project_id} 素材库", ""]
+            lines = [
+                f"# 项目 {project_id} 素材库",
+                "",
+                "## 导出概览",
+                "",
+                f"- 导出条件：{library['filter_summary']}",
+                f"- 当前导出：{library['total_count']} 条",
+                f"- 项目全部：{library['summary']['all_count']} 条",
+                f"- 搜索收藏：{library['search_result_count']} 条",
+                f"- 截图反查：{library['frame_match_count']} 条",
+                "",
+                "## 素材列表",
+                "",
+            ]
             for item in items:
                 tags = " / ".join(item.get("tags") or []) or "未打标签"
                 lines.append(f"- **{item['title']}** ({item.get('source_type_label') or item['source_type']})")
@@ -650,6 +665,66 @@ class LocalApiService:
         }
     def _count_library_items(self, items: list[dict[str, Any]], key: str, value: str) -> int:
         return sum(1 for item in items if item.get(key) == value)
+    def _build_library_filters(
+        self,
+        source_type: str | None,
+        review_status: str | None,
+        rights_status: str | None,
+        match_confidence: str | None,
+        keyword: str | None,
+        sort_by: str,
+    ) -> dict[str, str]:
+        return {
+            "source_type": source_type or "all",
+            "review_status": review_status or "all",
+            "rights_status": rights_status or "all",
+            "match_confidence": match_confidence or "all",
+            "keyword": (keyword or "").strip(),
+            "sort_by": sort_by,
+        }
+    def _library_filter_summary(
+        self,
+        source_type: str | None,
+        review_status: str | None,
+        rights_status: str | None,
+        match_confidence: str | None,
+        keyword: str | None,
+        sort_by: str,
+    ) -> str:
+        filters = self._build_library_filters(source_type, review_status, rights_status, match_confidence, keyword, sort_by)
+        parts = [
+            f"来源={self._filter_value_label('source_type', filters['source_type'])}",
+            f"复核={self._filter_value_label('review_status', filters['review_status'])}",
+            f"版权={self._filter_value_label('rights_status', filters['rights_status'])}",
+            f"可信度={self._filter_value_label('match_confidence', filters['match_confidence'])}",
+            f"排序={self._filter_value_label('sort_by', filters['sort_by'])}",
+        ]
+        if filters["keyword"]:
+            parts.append(f"关键词={filters['keyword']}")
+        return "，".join(parts)
+    def _filter_value_label(self, field: str, value: str) -> str:
+        if value == "all":
+            return "全部"
+        if field == "source_type":
+            return self._source_type_label(value)
+        if field == "review_status":
+            return self._review_status_label(value)
+        if field == "rights_status":
+            return self._rights_status_label(value)
+        if field == "match_confidence":
+            return {"high": "高可信", "medium": "中可信", "low": "低可信"}.get(value, value)
+        if field == "sort_by":
+            return {
+                "created_desc": "最新在前",
+                "created_asc": "最早在前",
+                "score_desc": "匹配分高在前",
+                "confidence_desc": "可信度高在前",
+                "confidence_asc": "可信度低在前",
+                "title_asc": "标题 A-Z",
+                "time_asc": "时间点早在前",
+                "time_desc": "时间点晚在前",
+            }.get(value, value)
+        return value
     def _confidence_sort_value(self, item: dict[str, Any], reverse: bool) -> int:
         order = {"low": 1, "medium": 2, "high": 3}
         value = order.get(item.get("match_confidence"), 0)

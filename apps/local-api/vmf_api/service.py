@@ -334,6 +334,7 @@ class LocalApiService:
         search_materials = [
             {
                 "source_type": "search_result",
+                "source_type_label": self._source_type_label("search_result"),
                 "material_id": item["id"],
                 "title": item["title"],
                 "platform": item["platform"],
@@ -342,7 +343,9 @@ class LocalApiService:
                 "selected_timestamp_ms": item["selected_timestamp_ms"],
                 "selected_timecode": self._format_timecode(item["selected_timestamp_ms"]),
                 "review_status": item["review_status"],
+                "review_status_label": self._review_status_label(item["review_status"]),
                 "rights_status": item["rights_status"],
+                "rights_status_label": self._rights_status_label(item["rights_status"]),
                 "tags": item["tags_json"],
                 "note": item["note"],
                 "created_at": item["created_at"],
@@ -352,6 +355,7 @@ class LocalApiService:
         frame_materials = [
             {
                 "source_type": "frame_match",
+                "source_type_label": self._source_type_label("frame_match"),
                 "material_id": item["id"],
                 "match_id": item["match_id"],
                 "title": Path(item["candidate_video_path"]).name,
@@ -376,7 +380,9 @@ class LocalApiService:
                 "evidence": item["evidence_json"],
                 "evidence_summary": self._summarize_match_evidence(item["evidence_json"]),
                 "review_status": item["review_status"],
+                "review_status_label": self._review_status_label(item["review_status"]),
                 "rights_status": item["rights_status"],
+                "rights_status_label": self._rights_status_label(item["rights_status"]),
                 "tags": item["tags_json"],
                 "note": item["note"],
                 "created_at": item["created_at"],
@@ -450,6 +456,7 @@ class LocalApiService:
             output = io.StringIO()
             fields = [
                 "source_type",
+                "source_type_label",
                 "material_id",
                 "title",
                 "platform",
@@ -468,7 +475,9 @@ class LocalApiService:
                 "match_confidence_label",
                 "evidence_summary",
                 "review_status",
+                "review_status_label",
                 "rights_status",
+                "rights_status_label",
                 "tags",
                 "note",
                 "created_at",
@@ -484,9 +493,11 @@ class LocalApiService:
             lines = [f"# 项目 {project_id} 素材库", ""]
             for item in items:
                 tags = " / ".join(item.get("tags") or []) or "未打标签"
-                lines.append(f"- **{item['title']}** ({item['source_type']})")
+                lines.append(f"- **{item['title']}** ({item.get('source_type_label') or item['source_type']})")
                 lines.append(f"  - 来源：{item['source_url']}")
-                lines.append(f"  - 状态：{item['review_status']}，标签：{tags}")
+                review_label = item.get("review_status_label") or item["review_status"]
+                rights_label = item.get("rights_status_label") or item["rights_status"]
+                lines.append(f"  - 状态：{review_label}，版权：{rights_label}，标签：{tags}")
                 if item.get("selected_timestamp_ms") is not None:
                     lines.append(f"  - 时间点：{item['selected_timestamp_ms']}ms")
                 if item.get("timecode"):
@@ -650,6 +661,9 @@ class LocalApiService:
             item.get("title"),
             item.get("platform"),
             item.get("source_url"),
+            item.get("source_type_label"),
+            item.get("review_status_label"),
+            item.get("rights_status_label"),
             item.get("note"),
             item.get("match_type"),
             item.get("timecode"),
@@ -661,6 +675,24 @@ class LocalApiService:
             *item.get("tags", []),
         ]
         return keyword in " ".join(str(part or "").lower() for part in searchable_parts)
+    def _source_type_label(self, source_type: str) -> str:
+        return {
+            "search_result": "搜索收藏",
+            "frame_match": "截图反查",
+        }.get(source_type, source_type)
+    def _review_status_label(self, review_status: str) -> str:
+        return {
+            "pending": "待复核",
+            "confirmed": "已确认",
+            "rejected": "已拒绝",
+        }.get(review_status, review_status)
+    def _rights_status_label(self, rights_status: str) -> str:
+        return {
+            "unknown": "未知",
+            "cleared": "可用",
+            "needs_permission": "需授权",
+            "blocked": "不可用",
+        }.get(rights_status, rights_status)
     def _match_confidence(self, combined_score: float | None) -> str | None:
         if combined_score is None:
             return None

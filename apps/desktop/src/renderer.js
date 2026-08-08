@@ -301,6 +301,7 @@ function renderLibrarySummary(library) {
           <span>${escapeHtml(item.source_type_label || "")}</span>
           <span>${escapeHtml(item.timecode || item.review_status_label || item.rights_status_label || item.match_confidence_label || "")}</span>
           <span>${escapeHtml(item.title || "未命名素材")}</span>
+          <span>${escapeHtml(item.suggested_next_step || item.action_reason || "")}</span>
         </div>
       `).join("")}
     </div>

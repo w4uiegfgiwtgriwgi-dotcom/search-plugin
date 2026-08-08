@@ -697,10 +697,13 @@ class LocalApiService:
                 "rights_attention": {"action_filter": "rights_attention", "rights_status": "needs_permission/blocked"},
                 "low_confidence": {"action_filter": "low_confidence", "match_confidence": "low"},
             },
-            **{name: [self._action_item_brief(item) for item in group[:limit]] for name, group in groups.items()},
+            **{name: [self._action_item_brief(item, name) for item in group[:limit]] for name, group in groups.items()},
         }
-    def _action_item_brief(self, item: dict[str, Any]) -> dict[str, Any]:
+    def _action_item_brief(self, item: dict[str, Any], action_type: str) -> dict[str, Any]:
+        guidance = self._action_item_guidance(item, action_type)
         return {
+            "action_type": action_type,
+            **guidance,
             "source_type": item.get("source_type"),
             "source_type_label": item.get("source_type_label"),
             "material_id": item.get("material_id"),
@@ -715,6 +718,41 @@ class LocalApiService:
             "timecode": item.get("timecode") or item.get("selected_timecode"),
             "duration_timecode": item.get("duration_timecode"),
             "combined_score": item.get("combined_score"),
+        }
+    def _action_item_guidance(self, item: dict[str, Any], action_type: str) -> dict[str, str]:
+        if action_type == "pending_review":
+            return {
+                "action_label": "待复核",
+                "priority": "medium",
+                "action_reason": "素材还没有人工确认",
+                "suggested_next_step": "打开来源核对标题、画面和备注，再标为已确认或已拒绝",
+            }
+        if action_type == "rights_attention":
+            if item.get("rights_status") == "blocked":
+                return {
+                    "action_label": "版权不可用",
+                    "priority": "high",
+                    "action_reason": "素材已标记为不可用",
+                    "suggested_next_step": "替换素材或保留为参考，不要放入可交付清单",
+                }
+            return {
+                "action_label": "版权需处理",
+                "priority": "high",
+                "action_reason": "素材需要先确认授权",
+                "suggested_next_step": "确认授权来源，能使用就标为可用，否则标为不可用",
+            }
+        if action_type == "low_confidence":
+            return {
+                "action_label": "低可信",
+                "priority": "medium",
+                "action_reason": "截图反查匹配可信度较低",
+                "suggested_next_step": "回看时间点和证据摘要，必要时重新匹配或换候选视频",
+            }
+        return {
+            "action_label": action_type,
+            "priority": "low",
+            "action_reason": "需要人工确认",
+            "suggested_next_step": "查看素材详情后决定是否保留",
         }
     def _build_library_action_lines(self, items: list[dict[str, Any]]) -> list[str]:
         action_items = self._build_library_action_items(items)
@@ -733,7 +771,8 @@ class LocalApiService:
                 timecode = f" @ {item['timecode']}" if item.get("timecode") else ""
                 confidence = f"，{item['match_confidence_label']}" if item.get("match_confidence_label") else ""
                 rights = f"，版权：{item['rights_status_label']}" if item.get("rights_status_label") else ""
-                lines.append(f"  - {item['title']}{timecode}{confidence}{rights}")
+                suggestion = f"，建议：{item['suggested_next_step']}" if item.get("suggested_next_step") else ""
+                lines.append(f"  - {item['title']}{timecode}{confidence}{rights}{suggestion}")
         return lines
     def _build_frame_match_timeline(self, items: list[dict[str, Any]]) -> list[dict[str, Any]]:
         frame_items = [item for item in items if item.get("source_type") == "frame_match"]

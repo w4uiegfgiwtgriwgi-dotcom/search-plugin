@@ -262,6 +262,9 @@ class Stage2MediaMatchingTest(unittest.TestCase):
         self.assertEqual(library["action_items"]["counts"]["rights_attention"], 1)
         self.assertEqual(library["action_items"]["filters"]["pending_review"]["action_filter"], "pending_review")
         self.assertEqual(library["action_items"]["pending_review"][0]["source_type"], "search_result")
+        self.assertEqual(library["action_items"]["pending_review"][0]["action_label"], "待复核")
+        self.assertIn("打开来源", library["action_items"]["pending_review"][0]["suggested_next_step"])
+        self.assertEqual(library["action_items"]["rights_attention"][0]["priority"], "high")
 
         frame_only = self.service.list_project_library(project["id"], source_type="frame_match")
         pending_only = self.service.list_project_library(project["id"], action_filter="pending_review")
@@ -309,6 +312,7 @@ class Stage2MediaMatchingTest(unittest.TestCase):
         self.assertIn("截图反查时间线", md_export)
         self.assertLess(md_export.index("截图反查时间线"), md_export.index("素材列表"))
         self.assertIn("待处理清单", self.service.export_project_library(project["id"], "md"))
+        self.assertIn("建议：", self.service.export_project_library(project["id"], "md"))
         self.assertIn("已确认", md_export)
         self.assertIn("未知", md_export)
         self.assertIn("时间码", md_export)

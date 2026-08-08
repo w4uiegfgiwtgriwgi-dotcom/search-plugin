@@ -235,7 +235,8 @@ class Stage2MediaMatchingTest(unittest.TestCase):
         project = self.service.create_project("统一素材项目")
         task = self.service.create_search_task("旧空调")
         result = self.service.list_results(task["id"])[0]
-        self.service.add_material(project["id"], result["id"], tags=["文字搜索"], note="阶段1素材")
+        search_material = self.service.add_material(project["id"], result["id"], tags=["文字搜索"], note="阶段1素材")
+        self.service.update_material_rights_status(project["id"], "search_result", search_material["id"], "needs_permission")
 
         asset = self.service.analyze_image(self.query_frame_path)
         match = self.service.find_frame_match(asset["id"], self.video_path, fps=1.0, threshold=ROBUSTNESS_THRESHOLD)
@@ -258,15 +259,25 @@ class Stage2MediaMatchingTest(unittest.TestCase):
         self.assertEqual(len(library["timeline"]), 1)
         self.assertEqual(library["timeline"][0]["title"], Path(self.video_path).name)
         self.assertEqual(library["action_items"]["counts"]["pending_review"], 1)
+        self.assertEqual(library["action_items"]["counts"]["rights_attention"], 1)
+        self.assertEqual(library["action_items"]["filters"]["pending_review"]["action_filter"], "pending_review")
         self.assertEqual(library["action_items"]["pending_review"][0]["source_type"], "search_result")
 
         frame_only = self.service.list_project_library(project["id"], source_type="frame_match")
+        pending_only = self.service.list_project_library(project["id"], action_filter="pending_review")
+        rights_attention = self.service.list_project_library(project["id"], action_filter="rights_attention")
         score_sorted = self.service.list_project_library(project["id"], sort_by="score_desc")
         csv_export = self.service.export_project_library(project["id"], "csv")
         md_export = self.service.export_project_library(project["id"], "md", source_type="frame_match")
         json_export = self.service.export_project_library(project["id"], "json")
+        action_json_export = self.service.export_project_library(project["id"], "json", action_filter="rights_attention")
 
         self.assertEqual(frame_only["total_count"], 1)
+        self.assertEqual(pending_only["total_count"], 1)
+        self.assertEqual(pending_only["filters"]["action_filter"], "pending_review")
+        self.assertIn("待处理=待复核", pending_only["filter_summary"])
+        self.assertEqual(rights_attention["total_count"], 1)
+        self.assertEqual(rights_attention["items"][0]["rights_status"], "needs_permission")
         self.assertEqual(frame_only["items"][0]["source_type"], "frame_match")
         self.assertEqual(frame_only["items"][0]["source_type_label"], "截图反查")
         self.assertEqual(frame_only["items"][0]["review_status_label"], "已确认")
@@ -308,8 +319,12 @@ class Stage2MediaMatchingTest(unittest.TestCase):
         self.assertIn('"filter_summary"', json_export)
         self.assertIn('"timeline"', json_export)
         self.assertIn('"action_items"', json_export)
+        self.assertIn('"action_filter": "rights_attention"', action_json_export)
         self.assertIn('"duration_timecode"', json_export)
         self.assertIn('"total_count": 2', json_export)
+        self.assertIn('"total_count": 1', action_json_export)
+        with self.assertRaises(ValueError):
+            self.service.list_project_library(project["id"], action_filter="maybe")
 
 
     def test_update_project_library_review_status(self):

@@ -19,6 +19,7 @@ let currentAssetId = null;
 let currentAssetIds = [];
 let currentMatch = null;
 let currentBulkMatches = [];
+let libraryActionFilter = "all";
 
 function renderApiStatus(status) {
   if (!apiPill) return;
@@ -279,15 +280,22 @@ function renderLibrarySummary(library) {
   const rights = summary.by_rights_status || {};
   const confidence = summary.by_match_confidence || {};
   const timeline = library.timeline || [];
+  const activeActionFilter = library.filters?.action_filter || "all";
   const actions = library.action_items || { counts: {} };
   const actionCounts = actions.counts || {};
   const actionTotal = (actionCounts.pending_review || 0) + (actionCounts.rights_attention || 0) + (actionCounts.low_confidence || 0);
+  const actionFilterLabel = {
+    pending_review: "待复核",
+    rights_attention: "版权需处理",
+    low_confidence: "低可信"
+  }[activeActionFilter] || "";
   const actionHtml = actionTotal === 0 ? "" : `
     <div class="library-actions">
       <strong>待处理</strong>
-      <span>待复核 ${actionCounts.pending_review || 0}</span>
-      <span>版权需处理 ${actionCounts.rights_attention || 0}</span>
-      <span>低可信 ${actionCounts.low_confidence || 0}</span>
+      <button class="action-filter-button ${activeActionFilter === "pending_review" ? "is-active" : ""}" data-action-filter="pending_review">待复核 ${actionCounts.pending_review || 0}</button>
+      <button class="action-filter-button ${activeActionFilter === "rights_attention" ? "is-active" : ""}" data-action-filter="rights_attention">版权需处理 ${actionCounts.rights_attention || 0}</button>
+      <button class="action-filter-button ${activeActionFilter === "low_confidence" ? "is-active" : ""}" data-action-filter="low_confidence">低可信 ${actionCounts.low_confidence || 0}</button>
+      ${activeActionFilter === "all" ? "" : `<button class="action-filter-button" data-action-filter="all">清除：${actionFilterLabel}</button>`}
       ${["pending_review", "rights_attention", "low_confidence"].flatMap((group) => actions[group] || []).slice(0, 6).map((item) => `
         <div class="action-item">
           <span>${escapeHtml(item.source_type_label || "")}</span>
@@ -414,6 +422,7 @@ async function refreshLibrary() {
     review_status: libraryReviewFilter?.value || "all",
     rights_status: libraryRightsFilter?.value || "all",
     match_confidence: libraryConfidenceFilter?.value || "all",
+    action_filter: libraryActionFilter,
     sort_by: librarySort?.value || "created_desc"
   });
   const library = await api(`/api/projects/${projectSelect.value}/library?${params.toString()}`);
@@ -432,9 +441,16 @@ function exportLibrary(fmt) {
     review_status: libraryReviewFilter?.value || "all",
     rights_status: libraryRightsFilter?.value || "all",
     match_confidence: libraryConfidenceFilter?.value || "all",
+    action_filter: libraryActionFilter,
     sort_by: librarySort?.value || "created_desc"
   });
   window.open(`${apiBase}/api/projects/${projectSelect.value}/library.${fmt}?${params.toString()}`, "_blank");
+}
+
+async function applyLibraryActionFilter(actionFilter) {
+  libraryActionFilter = actionFilter || "all";
+  await refreshLibrary();
+  statusEl.textContent = libraryActionFilter === "all" ? "已清除待处理筛选" : "已切换到待处理素材";
 }
 
 async function updateLibraryReviewStatus(sourceType, materialId, reviewStatus) {
@@ -621,6 +637,7 @@ document.querySelectorAll("button[data-export]").forEach((button) => {
 });
 
 projectSelect.addEventListener("change", () => {
+  libraryActionFilter = "all";
   refreshLibrary().catch((error) => {
     librarySummary.textContent = `项目素材刷新失败：${friendlyError(error)}`;
   });
@@ -643,6 +660,14 @@ document.querySelector("#refresh-library").addEventListener("click", () => {
 libraryKeyword?.addEventListener("input", () => {
   refreshLibrary().catch((error) => {
     librarySummary.textContent = `项目素材刷新失败：${friendlyError(error)}`;
+  });
+});
+
+librarySummary?.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-action-filter]");
+  if (!button) return;
+  applyLibraryActionFilter(button.dataset.actionFilter).catch((error) => {
+    librarySummary.textContent = `待处理筛选失败：${friendlyError(error)}`;
   });
 });
 

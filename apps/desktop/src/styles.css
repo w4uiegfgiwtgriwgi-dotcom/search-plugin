@@ -28,6 +28,8 @@ textarea { width: 100%; min-height: 104px; box-sizing: border-box; border: 1px s
 .summary-grid { display: flex; gap: 8px; flex-wrap: wrap; }
 .summary-chip { border: 1px solid #d7dde3; border-radius: 6px; background: #fff; color: #26313d; padding: 5px 8px; }
 .library-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; border: 1px solid #d7dde3; border-radius: 6px; background: #fff; padding: 8px; color: #26313d; }
+.action-filter-button { background: #eef1f4; color: #26313d; border: 1px solid #c7d0da; padding: 6px 9px; font-size: 12px; }
+.action-filter-button.is-active { background: #9a3412; color: #fff; border-color: #9a3412; }
 .action-item { display: grid; grid-template-columns: 72px 96px minmax(160px, 1fr); gap: 6px; min-width: min(100%, 360px); color: #48525e; }
 .action-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .library-timeline { display: grid; gap: 6px; margin-top: 10px; }

@@ -329,6 +329,7 @@ class LocalApiService:
         match_confidence: str | None = None,
         keyword: str | None = None,
         sort_by: str = "created_desc",
+        action_filter: str | None = None,
     ) -> dict[str, Any]:
         self.get_project(project_id)
         search_materials = [
@@ -408,6 +409,8 @@ class LocalApiService:
             if match_confidence not in {"high", "medium", "low"}:
                 raise ValueError("match_confidence 只能是 all/high/medium/low")
             items = [item for item in items if item.get("match_confidence") == match_confidence]
+        if action_filter and action_filter != "all":
+            items = self._filter_library_action_items(items, action_filter)
         normalized_keyword = (keyword or "").strip().lower()
         if normalized_keyword:
             items = [item for item in items if self._library_item_matches_keyword(item, normalized_keyword)]
@@ -434,8 +437,8 @@ class LocalApiService:
             "total_count": len(items),
             "search_result_count": sum(1 for item in items if item["source_type"] == "search_result"),
             "frame_match_count": sum(1 for item in items if item["source_type"] == "frame_match"),
-            "filters": self._build_library_filters(source_type, review_status, rights_status, match_confidence, keyword, sort_by),
-            "filter_summary": self._library_filter_summary(source_type, review_status, rights_status, match_confidence, keyword, sort_by),
+            "filters": self._build_library_filters(source_type, review_status, rights_status, match_confidence, keyword, sort_by, action_filter),
+            "filter_summary": self._library_filter_summary(source_type, review_status, rights_status, match_confidence, keyword, sort_by, action_filter),
             "summary": self._build_library_summary(all_items, items),
             "timeline": self._build_frame_match_timeline(items),
             "action_items": self._build_library_action_items(items),
@@ -451,8 +454,9 @@ class LocalApiService:
         match_confidence: str | None = None,
         keyword: str | None = None,
         sort_by: str = "created_desc",
+        action_filter: str | None = None,
     ) -> str:
-        library = self.list_project_library(project_id, source_type, review_status, rights_status, match_confidence, keyword, sort_by)
+        library = self.list_project_library(project_id, source_type, review_status, rights_status, match_confidence, keyword, sort_by, action_filter)
         items = library["items"]
         if fmt == "json":
             return json.dumps(library, ensure_ascii=False, indent=2)
@@ -672,6 +676,14 @@ class LocalApiService:
         }
     def _count_library_items(self, items: list[dict[str, Any]], key: str, value: str) -> int:
         return sum(1 for item in items if item.get(key) == value)
+    def _filter_library_action_items(self, items: list[dict[str, Any]], action_filter: str) -> list[dict[str, Any]]:
+        if action_filter == "pending_review":
+            return [item for item in items if item.get("review_status") == "pending"]
+        if action_filter == "rights_attention":
+            return [item for item in items if item.get("rights_status") in {"needs_permission", "blocked"}]
+        if action_filter == "low_confidence":
+            return [item for item in items if item.get("match_confidence") == "low"]
+        raise ValueError("action_filter 只能是 all/pending_review/rights_attention/low_confidence")
     def _build_library_action_items(self, items: list[dict[str, Any]], limit: int = 5) -> dict[str, Any]:
         groups = {
             "pending_review": [item for item in items if item.get("review_status") == "pending"],
@@ -680,6 +692,11 @@ class LocalApiService:
         }
         return {
             "counts": {name: len(group) for name, group in groups.items()},
+            "filters": {
+                "pending_review": {"action_filter": "pending_review", "review_status": "pending"},
+                "rights_attention": {"action_filter": "rights_attention", "rights_status": "needs_permission/blocked"},
+                "low_confidence": {"action_filter": "low_confidence", "match_confidence": "low"},
+            },
             **{name: [self._action_item_brief(item) for item in group[:limit]] for name, group in groups.items()},
         }
     def _action_item_brief(self, item: dict[str, Any]) -> dict[str, Any]:
@@ -757,12 +774,14 @@ class LocalApiService:
         match_confidence: str | None,
         keyword: str | None,
         sort_by: str,
+        action_filter: str | None,
     ) -> dict[str, str]:
         return {
             "source_type": source_type or "all",
             "review_status": review_status or "all",
             "rights_status": rights_status or "all",
             "match_confidence": match_confidence or "all",
+            "action_filter": action_filter or "all",
             "keyword": (keyword or "").strip(),
             "sort_by": sort_by,
         }
@@ -774,13 +793,15 @@ class LocalApiService:
         match_confidence: str | None,
         keyword: str | None,
         sort_by: str,
+        action_filter: str | None,
     ) -> str:
-        filters = self._build_library_filters(source_type, review_status, rights_status, match_confidence, keyword, sort_by)
+        filters = self._build_library_filters(source_type, review_status, rights_status, match_confidence, keyword, sort_by, action_filter)
         parts = [
             f"来源={self._filter_value_label('source_type', filters['source_type'])}",
             f"复核={self._filter_value_label('review_status', filters['review_status'])}",
             f"版权={self._filter_value_label('rights_status', filters['rights_status'])}",
             f"可信度={self._filter_value_label('match_confidence', filters['match_confidence'])}",
+            f"待处理={self._filter_value_label('action_filter', filters['action_filter'])}",
             f"排序={self._filter_value_label('sort_by', filters['sort_by'])}",
         ]
         if filters["keyword"]:
@@ -797,6 +818,12 @@ class LocalApiService:
             return self._rights_status_label(value)
         if field == "match_confidence":
             return {"high": "高可信", "medium": "中可信", "low": "低可信"}.get(value, value)
+        if field == "action_filter":
+            return {
+                "pending_review": "待复核",
+                "rights_attention": "版权需处理",
+                "low_confidence": "低可信",
+            }.get(value, value)
         if field == "sort_by":
             return {
                 "created_desc": "最新在前",

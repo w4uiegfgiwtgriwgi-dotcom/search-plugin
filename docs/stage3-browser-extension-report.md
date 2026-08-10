@@ -47,3 +47,10 @@
 - 刷新时会尽量保留当前已选择的项目。
 - 刷新请求期间按钮会临时禁用，避免重复请求。
 - 当本地 API 不可用时，弹窗会显示可读错误提示。
+
+## 本次补充：阶段3手动验收准备
+
+- 新增 `docs/stage3-manual-acceptance.md`，说明 Chrome 扩展加载、保存页面和桌面端确认步骤。
+- 新增 `apps/local-api/scripts/stage3_browser_collect_smoke.py`，可模拟扩展采集公开页面并验证本地 API 入库链路。
+- 扩展 README 增加手动验收文档入口。
+- 这一步仍不读取密码、Cookie、Token 或登录态，只验证用户主动采集公开页面。

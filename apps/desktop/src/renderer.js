@@ -12,6 +12,8 @@ const libraryReviewFilter = document.querySelector("#library-review-filter");
 const libraryRightsFilter = document.querySelector("#library-rights-filter");
 const libraryConfidenceFilter = document.querySelector("#library-confidence-filter");
 const librarySort = document.querySelector("#library-sort");
+const showBrowserMaterialsButton = document.querySelector("#show-browser-materials");
+const refreshBrowserMaterialsButton = document.querySelector("#refresh-browser-materials");
 const screenshotDropzone = document.querySelector("#screenshot-dropzone");
 let currentTaskId = null;
 let currentResults = [];
@@ -657,6 +659,26 @@ projectSelect.addEventListener("change", () => {
 
 document.querySelector("#refresh-library").addEventListener("click", () => {
   refreshLibrary().catch((error) => {
+    librarySummary.textContent = `项目素材刷新失败：${friendlyError(error)}`;
+  });
+});
+
+showBrowserMaterialsButton?.addEventListener("click", () => {
+  if (libraryKeyword) libraryKeyword.value = "浏览器采集";
+  if (libraryFilter) libraryFilter.value = "all";
+  if (librarySort) librarySort.value = "created_desc";
+  libraryActionFilter = "all";
+  refreshLibrary().then((library) => {
+    statusEl.textContent = `正在查看浏览器采集素材，共 ${library?.total_count ?? 0} 条`;
+  }).catch((error) => {
+    librarySummary.textContent = `浏览器采集素材刷新失败：${friendlyError(error)}`;
+  });
+});
+
+refreshBrowserMaterialsButton?.addEventListener("click", () => {
+  refreshLibrary().then((library) => {
+    statusEl.textContent = `已刷新项目素材，当前 ${library?.total_count ?? 0} 条`;
+  }).catch((error) => {
     librarySummary.textContent = `项目素材刷新失败：${friendlyError(error)}`;
   });
 });

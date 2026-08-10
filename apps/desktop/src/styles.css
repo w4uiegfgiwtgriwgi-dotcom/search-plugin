@@ -24,6 +24,11 @@ textarea { width: 100%; min-height: 104px; box-sizing: border-box; border: 1px s
 .library-tools { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 12px; }
 .library-tools label { display: grid; gap: 6px; font-size: 13px; color: #48525e; }
 .library-tools select { margin-top: 0; }
+.browser-capture-tip { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; border: 1px solid #b7d5f8; border-radius: 6px; background: #f2f8ff; padding: 10px; margin-bottom: 12px; color: #26313d; }
+.browser-capture-tip div:first-child { display: grid; gap: 3px; }
+.browser-capture-tip span { color: #5e6a75; font-size: 12px; }
+.tip-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.tip-actions button { background: #eef1f4; color: #26313d; border: 1px solid #c7d0da; padding: 7px 10px; font-size: 12px; }
 .library-summary { color: #5e6a75; font-size: 13px; margin-bottom: 10px; }
 .summary-grid { display: flex; gap: 8px; flex-wrap: wrap; }
 .summary-chip { border: 1px solid #d7dde3; border-radius: 6px; background: #fff; color: #26313d; padding: 5px 8px; }

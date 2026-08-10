@@ -279,6 +279,7 @@ function renderLibrarySummary(library) {
   const review = summary.by_review_status || {};
   const rights = summary.by_rights_status || {};
   const confidence = summary.by_match_confidence || {};
+  const usage = summary.by_usage_status || {};
   const timeline = library.timeline || [];
   const activeActionFilter = library.filters?.action_filter || "all";
   const actions = library.action_items || { counts: {} };
@@ -325,6 +326,8 @@ function renderLibrarySummary(library) {
       <span class="summary-chip">高可信 ${confidence.high ?? 0}</span>
       <span class="summary-chip">中可信 ${confidence.medium ?? 0}</span>
       <span class="summary-chip">低可信 ${confidence.low ?? 0}</span>
+      <span class="summary-chip">可交付 ${usage.ready ?? 0}</span>
+      <span class="summary-chip">待确认 ${((usage.needs_review || 0) + (usage.rights_unknown || 0) + (usage.low_confidence || 0))}</span>
       <span class="summary-chip">待复核 ${review.pending ?? 0}</span>
       <span class="summary-chip">已确认 ${review.confirmed ?? 0}</span>
       <span class="summary-chip">已拒绝 ${review.rejected ?? 0}</span>
@@ -352,6 +355,7 @@ function renderLibrary(library) {
       <p>分数明细：pHash ${item.phash_score} / 视觉 ${item.visual_score} / 文字 ${item.text_score}</p>
     `;
     const evidence = item.evidence_summary ? `<p>证据：${escapeHtml(item.evidence_summary)}</p>` : "";
+    const usageStatus = item.usage_status_label ? `<p>可用状态：${escapeHtml(item.usage_status_label)} · ${escapeHtml(item.usage_status_reason || "")}</p>` : "";
     const timeLabel = item.timecode || item.selected_timecode;
     const timestamp = item.selected_timestamp_ms == null ? "" : `<p>时间点：${timeLabel || ""} (${item.selected_timestamp_ms}ms)</p>`;
     const duration = item.duration_timecode ? `<p>时长：${item.duration_timecode} (${item.duration_ms}ms)</p>` : "";
@@ -383,6 +387,7 @@ function renderLibrary(library) {
         ${duration}
         ${score}
         ${confidence}
+        ${usageStatus}
         ${scoreDetails}
         ${evidence}
         <p>状态：${reviewStatusLabel(item.review_status)}</p>

@@ -394,6 +394,8 @@ class LocalApiService:
             for item in self.list_frame_match_materials(project_id)
         ]
         all_items = [*search_materials, *frame_materials]
+        for item in all_items:
+            item.update(self._material_usage_status(item))
         items = list(all_items)
         if source_type and source_type != "all":
             if source_type not in {"search_result", "frame_match"}:
@@ -481,6 +483,9 @@ class LocalApiService:
                 "text_score",
                 "match_confidence",
                 "match_confidence_label",
+                "usage_status",
+                "usage_status_label",
+                "usage_status_reason",
                 "evidence_summary",
                 "review_status",
                 "review_status_label",
@@ -524,6 +529,8 @@ class LocalApiService:
                 review_label = item.get("review_status_label") or item["review_status"]
                 rights_label = item.get("rights_status_label") or item["rights_status"]
                 lines.append(f"  - 状态：{review_label}，版权：{rights_label}，标签：{tags}")
+                if item.get("usage_status_label"):
+                    lines.append(f"  - 可用状态：{item['usage_status_label']}，原因：{item.get('usage_status_reason') or '待确认'}")
                 if item.get("selected_timestamp_ms") is not None:
                     lines.append(f"  - 时间点：{item['selected_timestamp_ms']}ms")
                 if item.get("timecode"):
@@ -673,9 +680,58 @@ class LocalApiService:
                 status: self._count_library_items(all_items, "match_confidence", status)
                 for status in ["high", "medium", "low"]
             },
+            "by_usage_status": {
+                status: self._count_library_items(all_items, "usage_status", status)
+                for status in ["ready", "needs_review", "rights_unknown", "needs_permission", "low_confidence", "unavailable"]
+            },
         }
     def _count_library_items(self, items: list[dict[str, Any]], key: str, value: str) -> int:
         return sum(1 for item in items if item.get(key) == value)
+    def _material_usage_status(self, item: dict[str, Any]) -> dict[str, str]:
+        review_status = item.get("review_status")
+        rights_status = item.get("rights_status")
+        match_confidence = item.get("match_confidence")
+        if review_status == "rejected" or rights_status == "blocked":
+            return {
+                "usage_status": "unavailable",
+                "usage_status_label": "不可用",
+                "usage_status_reason": "素材已被拒绝或版权标记为不可用",
+            }
+        if rights_status == "needs_permission":
+            return {
+                "usage_status": "needs_permission",
+                "usage_status_label": "需授权",
+                "usage_status_reason": "使用前需要先确认授权",
+            }
+        if review_status == "pending":
+            return {
+                "usage_status": "needs_review",
+                "usage_status_label": "待复核",
+                "usage_status_reason": "还没有人工确认素材是否匹配需求",
+            }
+        if match_confidence == "low":
+            return {
+                "usage_status": "low_confidence",
+                "usage_status_label": "低可信待确认",
+                "usage_status_reason": "截图反查匹配分较低，建议先回看时间点",
+            }
+        if rights_status == "unknown":
+            return {
+                "usage_status": "rights_unknown",
+                "usage_status_label": "版权待确认",
+                "usage_status_reason": "版权状态未知，暂不建议直接用于交付",
+            }
+        if review_status == "confirmed" and rights_status == "cleared":
+            return {
+                "usage_status": "ready",
+                "usage_status_label": "可用",
+                "usage_status_reason": "已确认且版权标记为可用",
+            }
+        return {
+            "usage_status": "needs_review",
+            "usage_status_label": "待复核",
+            "usage_status_reason": "素材状态还需要人工确认",
+        }
     def _filter_library_action_items(self, items: list[dict[str, Any]], action_filter: str) -> list[dict[str, Any]]:
         if action_filter == "pending_review":
             return [item for item in items if item.get("review_status") == "pending"]
@@ -889,6 +945,8 @@ class LocalApiService:
             item.get("source_type_label"),
             item.get("review_status_label"),
             item.get("rights_status_label"),
+            item.get("usage_status_label"),
+            item.get("usage_status_reason"),
             item.get("note"),
             item.get("match_type"),
             item.get("timecode"),

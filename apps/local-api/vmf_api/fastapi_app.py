@@ -72,6 +72,9 @@ if FastAPI:
         project_name: str = "浏览器采集素材"
         author_name: str = ""
         description: str = ""
+        cover_url: str = ""
+        published_at: str = ""
+        site_name: str = ""
 
     class AnalyzeImageRequest(BaseModel):
         image_path: str
@@ -139,6 +142,9 @@ if FastAPI:
                 request.project_name,
                 request.author_name,
                 request.description,
+                request.cover_url,
+                request.published_at,
+                request.site_name,
             )
         except (KeyError, ValueError) as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc

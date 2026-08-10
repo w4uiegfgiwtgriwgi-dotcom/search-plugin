@@ -4,7 +4,7 @@
 
 已支持：
 
-- 读取当前标签页的标题、URL、作者 meta 和描述 meta。
+- 读取当前标签页的标题、URL、作者 meta、描述 meta、封面 meta、发布时间 meta 和站点名。
 - 调用本地 API：`POST http://127.0.0.1:17860/api/browser/collect-page`。
 - 本地 API 会自动创建或复用“浏览器采集素材”项目，并把页面保存为项目素材。
 

@@ -348,9 +348,14 @@ function renderLibrary(library) {
     return;
   }
   libraryList.innerHTML = library.items.map((item) => {
-    const kind = item.source_type === "frame_match" ? "截图反查" : "搜索收藏";
+    const kind = item.source_type === "frame_match" ? "截图反查" : (item.collection_source_label || "搜索收藏");
     const score = item.combined_score == null ? "" : `<p>匹配分：${item.combined_score}</p>`;
     const confidence = item.match_confidence_label ? `<p>可信度：${escapeHtml(item.match_confidence_label)}</p>` : "";
+    const browserMeta = item.platform === "browser-extension" ? `
+      <p>站点：${escapeHtml(item.site_name || item.hostname || "未知站点")}</p>
+      <p>作者：${escapeHtml(item.author_name || "未知作者")}</p>
+      <p>发布时间：${escapeHtml(item.published_at || "未知时间")}</p>
+    ` : "";
     const scoreDetails = item.phash_score == null ? "" : `
       <p>分数明细：pHash ${item.phash_score} / 视觉 ${item.visual_score} / 文字 ${item.text_score}</p>
     `;
@@ -387,6 +392,7 @@ function renderLibrary(library) {
         ${duration}
         ${score}
         ${confidence}
+        ${browserMeta}
         ${usageStatus}
         ${scoreDetails}
         ${evidence}

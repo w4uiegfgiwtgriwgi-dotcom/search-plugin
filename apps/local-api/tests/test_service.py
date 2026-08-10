@@ -30,15 +30,23 @@ class LocalApiServiceTest(unittest.TestCase):
             project_name="扩展采集项目",
             author_name="页面作者",
             description="页面公开描述",
+            cover_url="https://example.com/cover.jpg",
+            published_at="2026-08-10T12:00:00+08:00",
+            site_name="示例站点",
         )
         library = self.service.list_project_library(collected["project"]["id"], keyword="浏览器采集")
 
         self.assertEqual(collected["project"]["name"], "扩展采集项目")
         self.assertEqual(collected["result"]["platform"], "browser-extension")
         self.assertEqual(collected["result"]["author_name"], "页面作者")
+        self.assertEqual(collected["result"]["cover_url"], "https://example.com/cover.jpg")
+        self.assertEqual(collected["result"]["published_at"], "2026-08-10T12:00:00+08:00")
+        self.assertEqual(collected["result"]["raw_metadata_json"]["site_name"], "示例站点")
         self.assertEqual(collected["material"]["tags_json"], ["浏览器采集"])
         self.assertEqual(library["total_count"], 1)
         self.assertEqual(library["items"][0]["title"], "浏览器页面标题")
+        self.assertEqual(library["items"][0]["collection_source_label"], "浏览器采集")
+        self.assertEqual(library["items"][0]["site_name"], "示例站点")
         with self.assertRaises(ValueError):
             self.service.collect_browser_page("chrome://settings", "设置页")
     def test_query_helpers(self):

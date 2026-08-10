@@ -4,6 +4,7 @@ import io
 import json
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 from .adapters import DEFAULT_ADAPTERS, PlatformAdapter
 from .database import Database, loads_json_fields
 from .matching import FrameMatcher
@@ -91,6 +92,9 @@ class LocalApiService:
         project_name: str = "浏览器采集素材",
         author_name: str = "",
         description: str = "",
+        cover_url: str = "",
+        published_at: str = "",
+        site_name: str = "",
     ) -> dict[str, Any]:
         normalized_url = str(url or "").strip()
         normalized_title = str(title or "").strip() or "未命名页面"
@@ -101,6 +105,9 @@ class LocalApiService:
         normalized_title = normalized_title[: self.MAX_BROWSER_FIELD_LENGTH]
         author_name = str(author_name or "").strip()[: self.MAX_BROWSER_FIELD_LENGTH]
         description = str(description or "").strip()[: self.MAX_BROWSER_FIELD_LENGTH]
+        cover_url = self._safe_browser_url(cover_url)
+        published_at = str(published_at or "").strip()[: self.MAX_BROWSER_FIELD_LENGTH]
+        site_name = str(site_name or "").strip()[: self.MAX_BROWSER_FIELD_LENGTH]
         project = self.get_project(project_id) if project_id else self._ensure_project(project_name)
         task_id = self.db.execute("""
             INSERT INTO search_tasks (input_type, original_query, expanded_queries_json, selected_platforms_json, filters_json, status, progress, started_at, finished_at)
@@ -118,9 +125,15 @@ class LocalApiService:
             title=normalized_title,
             source_url=normalized_url,
             author_name=author_name,
+            cover_url=cover_url,
+            published_at=published_at,
             description=description,
             matched_query=normalized_title,
-            raw_metadata={"source": "browser-extension"},
+            raw_metadata={
+                "source": "browser-extension",
+                "site_name": site_name,
+                "hostname": urlparse(normalized_url).hostname or "",
+            },
         )
         result_id = self._insert_result(task_id, result)
         material = self.add_material(project["id"], result_id, ["浏览器采集"], "从浏览器扩展主动采集")
@@ -130,13 +143,18 @@ class LocalApiService:
             "result": self.list_results(task_id)[0],
             "material": material,
         }
+    def _safe_browser_url(self, value: str) -> str:
+        normalized = str(value or "").strip()
+        if not normalized:
+            return ""
+        return normalized if normalized.startswith(("http://", "https://")) else ""
     def list_materials(self, project_id: int) -> list[dict[str, Any]]:
         rows = self.db.query_all("""
-            SELECT pm.*, sr.title, sr.platform, sr.source_url, sr.cover_url
+            SELECT pm.*, sr.title, sr.platform, sr.source_url, sr.cover_url, sr.author_name, sr.description, sr.published_at, sr.raw_metadata_json
             FROM project_materials pm JOIN search_results sr ON sr.id = pm.result_id
             WHERE pm.project_id = ? ORDER BY pm.id
         """, (project_id,))
-        return [loads_json_fields(row, ["tags_json"]) for row in rows]
+        return [loads_json_fields(row, ["tags_json", "raw_metadata_json"]) for row in rows]
     def get_material(self, material_id: int) -> dict[str, Any]:
         row = self.db.query_one("SELECT * FROM project_materials WHERE id = ?", (material_id,))
         if not row:
@@ -393,8 +411,14 @@ class LocalApiService:
                 "material_id": item["id"],
                 "title": item["title"],
                 "platform": item["platform"],
+                "collection_source_label": self._collection_source_label(item),
                 "source_url": item["source_url"],
                 "cover_url": item["cover_url"],
+                "author_name": item.get("author_name") or "",
+                "description": item.get("description") or "",
+                "published_at": item.get("published_at") or "",
+                "site_name": (item.get("raw_metadata_json") or {}).get("site_name", ""),
+                "hostname": (item.get("raw_metadata_json") or {}).get("hostname", ""),
                 "selected_timestamp_ms": item["selected_timestamp_ms"],
                 "selected_timecode": self._format_timecode(item["selected_timestamp_ms"]),
                 "review_status": item["review_status"],
@@ -1017,6 +1041,10 @@ class LocalApiService:
             "search_result": "搜索收藏",
             "frame_match": "截图反查",
         }.get(source_type, source_type)
+    def _collection_source_label(self, item: dict[str, Any]) -> str:
+        if item.get("platform") == "browser-extension":
+            return "浏览器采集"
+        return self._source_type_label("search_result")
     def _review_status_label(self, review_status: str) -> str:
         return {
             "pending": "待复核",

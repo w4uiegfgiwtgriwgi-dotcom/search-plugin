@@ -9,11 +9,17 @@ function readVisiblePageInfo() {
   );
   const author = meta("author") || meta("article:author") || "";
   const description = meta("description") || meta("og:description") || "";
+  const cover = meta("og:image") || meta("twitter:image") || "";
+  const published = meta("article:published_time") || meta("pubdate") || meta("date") || "";
+  const siteName = meta("og:site_name") || meta("application-name") || location.hostname;
   return {
     title: document.title || meta("og:title") || "未命名页面",
     url: location.href,
     author_name: author,
-    description
+    description,
+    cover_url: cover,
+    published_at: published,
+    site_name: siteName
   };
 }
 

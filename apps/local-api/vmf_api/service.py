@@ -17,6 +17,7 @@ class LocalApiService:
     MAX_MATERIAL_TAGS = 20
     MAX_MATERIAL_TAG_LENGTH = 40
     MAX_MATERIAL_NOTE_LENGTH = 1000
+    MAX_BROWSER_FIELD_LENGTH = 500
 
     def __init__(self, db_path: str | Path = "./.local-data/video-material-finder.sqlite", adapters: dict[str, PlatformAdapter] | None = None):
         self.db = Database(db_path)
@@ -69,6 +70,12 @@ class LocalApiService:
         if not project:
             raise KeyError(f"project not found: {project_id}")
         return project
+    def _ensure_project(self, name: str) -> dict[str, Any]:
+        normalized_name = str(name or "").strip() or "浏览器采集素材"
+        existing = self.db.query_one("SELECT * FROM projects WHERE name = ? ORDER BY id LIMIT 1", (normalized_name,))
+        if existing:
+            return existing
+        return self.create_project(normalized_name)
     def add_material(self, project_id: int, result_id: int, tags: list[str] | None = None, note: str = "", selected_timestamp_ms: int | None = None) -> dict[str, Any]:
         self.get_project(project_id)
         material_id = self.db.execute("""
@@ -76,6 +83,53 @@ class LocalApiService:
             VALUES (?, ?, ?, ?, ?)
         """, (project_id, result_id, selected_timestamp_ms, json.dumps(tags or [], ensure_ascii=False), note)).lastrowid
         return self.get_material(material_id)
+    def collect_browser_page(
+        self,
+        url: str,
+        title: str,
+        project_id: int | None = None,
+        project_name: str = "浏览器采集素材",
+        author_name: str = "",
+        description: str = "",
+    ) -> dict[str, Any]:
+        normalized_url = str(url or "").strip()
+        normalized_title = str(title or "").strip() or "未命名页面"
+        if not normalized_url.startswith(("http://", "https://")):
+            raise ValueError("url 只能是 http/https 页面")
+        if len(normalized_url) > 2000:
+            raise ValueError("url 太长")
+        normalized_title = normalized_title[: self.MAX_BROWSER_FIELD_LENGTH]
+        author_name = str(author_name or "").strip()[: self.MAX_BROWSER_FIELD_LENGTH]
+        description = str(description or "").strip()[: self.MAX_BROWSER_FIELD_LENGTH]
+        project = self.get_project(project_id) if project_id else self._ensure_project(project_name)
+        task_id = self.db.execute("""
+            INSERT INTO search_tasks (input_type, original_query, expanded_queries_json, selected_platforms_json, filters_json, status, progress, started_at, finished_at)
+            VALUES (?, ?, ?, ?, ?, 'completed', 100, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        """, (
+            "browser-page",
+            normalized_url,
+            json.dumps([normalized_title, normalized_url], ensure_ascii=False),
+            json.dumps(["browser-extension"], ensure_ascii=False),
+            json.dumps({"source": "browser-extension"}, ensure_ascii=False),
+        )).lastrowid
+        result = SearchResult(
+            platform="browser-extension",
+            content_type="webpage",
+            title=normalized_title,
+            source_url=normalized_url,
+            author_name=author_name,
+            description=description,
+            matched_query=normalized_title,
+            raw_metadata={"source": "browser-extension"},
+        )
+        result_id = self._insert_result(task_id, result)
+        material = self.add_material(project["id"], result_id, ["浏览器采集"], "从浏览器扩展主动采集")
+        return {
+            "project": project,
+            "task": self.get_search_task(task_id),
+            "result": self.list_results(task_id)[0],
+            "material": material,
+        }
     def list_materials(self, project_id: int) -> list[dict[str, Any]]:
         rows = self.db.query_all("""
             SELECT pm.*, sr.title, sr.platform, sr.source_url, sr.cover_url

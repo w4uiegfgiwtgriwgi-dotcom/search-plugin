@@ -65,6 +65,14 @@ if FastAPI:
         tags: list[str] = Field(default_factory=list)
         note: str = ""
 
+    class BrowserPageRequest(BaseModel):
+        url: str
+        title: str = ""
+        project_id: int | None = None
+        project_name: str = "浏览器采集素材"
+        author_name: str = ""
+        description: str = ""
+
     class AnalyzeImageRequest(BaseModel):
         image_path: str
 
@@ -120,6 +128,20 @@ if FastAPI:
     @app.get("/api/projects")
     def list_projects():
         return service.list_projects()
+
+    @app.post("/api/browser/collect-page", status_code=201)
+    def collect_browser_page(request: BrowserPageRequest):
+        try:
+            return service.collect_browser_page(
+                request.url,
+                request.title,
+                request.project_id,
+                request.project_name,
+                request.author_name,
+                request.description,
+            )
+        except (KeyError, ValueError) as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     @app.post("/api/projects/{project_id}/materials", status_code=201)
     def add_material(project_id: int, request: MaterialRequest):

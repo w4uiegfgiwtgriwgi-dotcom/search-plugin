@@ -1,5 +1,8 @@
 const apiBase = "http://127.0.0.1:17860";
 const statusEl = document.querySelector("#status");
+const projectSelect = document.querySelector("#project-select");
+const collectButton = document.querySelector("#collect");
+const refreshProjectsButton = document.querySelector("#refresh-projects");
 
 function readVisiblePageInfo() {
   const meta = (name) => (
@@ -23,11 +26,10 @@ function readVisiblePageInfo() {
   };
 }
 
-async function savePageToLocalApi(pageInfo) {
-  const response = await fetch(`${apiBase}/api/browser/collect-page`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(pageInfo)
+async function fetchJson(path, options = {}) {
+  const response = await fetch(`${apiBase}${path}`, {
+    headers: { "content-type": "application/json", ...(options.headers || {}) },
+    ...options
   });
   if (!response.ok) {
     const text = await response.text();
@@ -36,7 +38,37 @@ async function savePageToLocalApi(pageInfo) {
   return response.json();
 }
 
-document.querySelector("#collect").addEventListener("click", async () => {
+async function loadProjects() {
+  const previousProjectId = projectSelect.value;
+  refreshProjectsButton.disabled = true;
+  const projects = await fetchJson("/api/projects");
+  projectSelect.innerHTML = [
+    `<option value="">自动创建浏览器采集素材</option>`,
+    ...projects.map((project) => `<option value="${project.id}">${project.name}</option>`)
+  ].join("");
+  if (previousProjectId && projects.some((project) => String(project.id) === previousProjectId)) {
+    projectSelect.value = previousProjectId;
+  }
+  statusEl.textContent = projects.length ? "请选择项目后保存当前页面" : "没有项目时会自动创建浏览器采集素材";
+  refreshProjectsButton.disabled = false;
+}
+
+async function savePageToLocalApi(pageInfo) {
+  const projectId = Number(projectSelect.value || 0);
+  const response = await fetch(`${apiBase}/api/browser/collect-page`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ ...pageInfo, project_id: projectId || null })
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || response.statusText);
+  }
+  return response.json();
+}
+
+collectButton.addEventListener("click", async () => {
+  collectButton.disabled = true;
   statusEl.textContent = "正在读取并保存当前页面";
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -48,5 +80,20 @@ document.querySelector("#collect").addEventListener("click", async () => {
     statusEl.textContent = `已保存到项目：${saved.project.name}，素材 ${saved.material.id}`;
   } catch (error) {
     statusEl.textContent = `保存失败：${error.message || error}`;
+  } finally {
+    collectButton.disabled = false;
   }
+});
+
+refreshProjectsButton.addEventListener("click", () => {
+  statusEl.textContent = "正在刷新项目列表";
+  loadProjects().catch((error) => {
+    refreshProjectsButton.disabled = false;
+    statusEl.textContent = `本地 API 不可用：${error.message || error}`;
+  });
+});
+
+loadProjects().catch((error) => {
+  refreshProjectsButton.disabled = false;
+  statusEl.textContent = `本地 API 不可用：${error.message || error}`;
 });

@@ -1,1 +1,28 @@
-﻿<!doctype html><html lang="zh-CN"><head><meta charset="utf-8" /><title>素材助手</title><style>body{width:280px;margin:0;padding:12px;font-family:"Microsoft YaHei",sans-serif}button{width:100%;padding:8px;border:0;border-radius:6px;background:#1f6feb;color:white}#status{margin-top:8px;font-size:12px;color:#5e6a75}</style></head><body><button id="collect">读取当前公开页面信息</button><div id="status">等待操作</div><script src="src/popup.js"></script></body></html>
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>素材助手</title>
+    <style>
+      body { width: 300px; margin: 0; padding: 12px; font-family: "Microsoft YaHei", sans-serif; color: #17202a; }
+      label { display: grid; gap: 6px; margin-bottom: 10px; font-size: 12px; color: #48525e; }
+      select { min-height: 34px; border: 1px solid #b8c0ca; border-radius: 6px; padding: 6px 8px; font: inherit; }
+      button { width: 100%; padding: 8px; border: 0; border-radius: 6px; background: #1f6feb; color: white; font: inherit; }
+      .secondary-button { margin-bottom: 10px; background: #eef1f4; color: #26313d; border: 1px solid #c7d0da; }
+      button:disabled { background: #9aa6b2; cursor: not-allowed; }
+      #status { margin-top: 8px; font-size: 12px; color: #5e6a75; line-height: 1.5; }
+    </style>
+  </head>
+  <body>
+    <label>
+      保存到项目
+      <select id="project-select">
+        <option value="">自动创建浏览器采集素材</option>
+      </select>
+    </label>
+    <button class="secondary-button" id="refresh-projects">刷新项目</button>
+    <button id="collect">保存当前公开页面</button>
+    <div id="status">正在读取本地项目</div>
+    <script src="src/popup.js"></script>
+  </body>
+</html>

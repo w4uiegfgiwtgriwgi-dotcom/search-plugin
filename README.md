@@ -55,12 +55,14 @@ npm run stage3:check
 npm run stage4:check
 npm run stage5:preflight
 npm run stage5:package-plan
+npm run stage5:runtime-check
 ```
 
 `npm run stage3:check` 会依次运行 Node 单元测试、API 测试、扩展脚本语法检查和 Electron 冒烟。
 `npm run stage4:check` 会在阶段3检查基础上，额外检查桌面端脚本和阶段4验收文档。
 `npm run stage5:preflight` 会在阶段4检查基础上，额外检查打包前关键文件、FFmpeg、Python 和 Electron 依赖。
 `npm run stage5:package-plan` 会检查 Windows 打包方案文件和桌面端打包前置条件，不会生成安装包。
+`npm run stage5:runtime-check` 会检查 Node、npm、Python、FFmpeg、本地 API 端口、运行目录和 `.gitignore` 安全项。
 
 阶段2/3 常用检查：
 

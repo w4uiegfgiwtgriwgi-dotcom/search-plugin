@@ -29,6 +29,23 @@ npm run stage5:preflight
 - FFmpeg 是否可在当前系统 PATH 中调用。
 - Python 虚拟环境是否可用。
 - Electron 依赖是否已安装。
+- Node、npm、本地 API 端口、运行目录和 `.gitignore` 安全项是否正常。
+
+## 新增运行环境检查
+
+```powershell
+cd E:\搜索插件
+npm run stage5:runtime-check
+```
+
+该命令会检查：
+
+- Node 和 npm 是否可用。
+- Python 虚拟环境是否可用。
+- FFmpeg 是否可用。
+- 本地 API 端口 `17860` 当前是空闲还是已有服务。
+- `.local-data`、桌面端依赖和本地 API 目录是否存在。
+- `.gitignore` 是否继续忽略本地数据、虚拟环境、依赖目录和 SQLite 数据库。
 
 ## 打包前必须处理
 

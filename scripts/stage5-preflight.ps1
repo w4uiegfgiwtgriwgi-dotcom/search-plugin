@@ -47,4 +47,8 @@ Run-Step "Desktop dependencies present" {
   Require-Path "apps/desktop/node_modules/electron"
 }
 
+Run-Step "Runtime environment check" {
+  powershell -ExecutionPolicy Bypass -File scripts/stage5-runtime-check.ps1
+}
+
 Write-Host "Stage5 preflight passed."

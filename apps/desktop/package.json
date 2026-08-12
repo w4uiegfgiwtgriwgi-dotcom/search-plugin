@@ -2,16 +2,50 @@
   "name": "video-material-finder-desktop",
   "version": "0.1.0-stage1",
   "private": true,
+  "description": "Windows local video material search assistant desktop app.",
+  "author": "w4uiegfgiwtgriwgi-dotcom",
   "main": "main.cjs",
   "scripts": {
     "start": "electron .",
-    "smoke": "set VMF_ELECTRON_SMOKE=1&& electron ."
+    "smoke": "set VMF_ELECTRON_SMOKE=1&& electron .",
+    "pack": "set CSC_IDENTITY_AUTO_DISCOVERY=false&& electron-builder --win dir --publish=never",
+    "dist": "set CSC_IDENTITY_AUTO_DISCOVERY=false&& electron-builder --win nsis --publish=never"
+  },
+  "build": {
+    "appId": "com.local.video-material-finder",
+    "productName": "全网视频素材智能搜索助手",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.cjs",
+      "preload.js",
+      "api-process.cjs",
+      "src/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "win": {
+      "signAndEditExecutable": false,
+      "target": [
+        "dir",
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    }
   },
   "dependencies": {
     "@vitejs/plugin-react": "6.0.5",
-    "electron": "43.3.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "vite": "8.2.0"
+  },
+  "devDependencies": {
+    "electron": "43.3.0",
+    "electron-builder": "^26.15.3"
   }
 }

@@ -56,8 +56,9 @@ npm run stage5:runtime-check
 - 已新增本地数据恢复命令：`npm run stage5:restore-data -- "备份zip路径"`。
 - 已新增安全审查与许可证复核：`docs/stage5-security-license-review.md`。
 - 已新增最终用户使用说明：`docs/user-guide.md`。
-- 当前 `apps/desktop/package.json` 还没有正式 Windows 打包脚本。
-- 尚未引入 `electron-builder` 或等价打包工具，需用户确认后联网安装。
+- 已安装 `electron-builder` 并新增桌面端 `pack` / `dist` 脚本。
+- 当前打包配置不包含 `.venv`、`.local-data`、`backups` 或 FFmpeg 二进制。
+- 当前 `npm run pack` 尚未成功生成目录包，原因是 electron-builder 打包阶段访问 GitHub 资源时网络重置或超时。
 - 尚未决定 FFmpeg 是否随安装包分发；当前本机 FFmpeg 为外部依赖。
 - 如果未来随包分发 FFmpeg，必须重新确认 GPL/LGPL 构建和分发义务。
 - 尚未设计自动更新策略。

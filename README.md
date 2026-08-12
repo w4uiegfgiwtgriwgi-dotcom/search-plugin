@@ -91,6 +91,7 @@ node --check src\popup.js
 - `docs/stage3-manual-acceptance.md`
 - `docs/stage4-wechat-channel-semi-auto-report.md`
 - `docs/stage4-manual-acceptance.md`
+- `docs/stage4-acceptance-report.md`
 
 ## 重要边界
 

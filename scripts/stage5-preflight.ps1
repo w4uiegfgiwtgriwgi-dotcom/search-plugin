@@ -32,6 +32,7 @@ Run-Step "Required project files" {
   Require-Path "apps/desktop/api-process.cjs"
   Require-Path "apps/local-api/requirements.lock.txt"
   Require-Path "docs/license-review.md"
+  Require-Path "docs/stage5-security-license-review.md"
   Require-Path ".gitignore"
 }
 

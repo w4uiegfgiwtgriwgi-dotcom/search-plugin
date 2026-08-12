@@ -103,6 +103,7 @@ node --check src\popup.js
 - `docs/stage5-production-readiness.md`
 - `docs/stage5-windows-package-plan.md`
 - `docs/stage5-data-backup.md`
+- `docs/stage5-security-license-review.md`
 
 ## 重要边界
 

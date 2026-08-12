@@ -54,6 +54,7 @@ npm run stage5:runtime-check
 - 已新增数据备份与恢复说明：`docs/stage5-data-backup.md`。
 - 已新增本地数据备份命令：`npm run stage5:backup-data`。
 - 已新增本地数据恢复命令：`npm run stage5:restore-data -- "备份zip路径"`。
+- 已新增安全审查与许可证复核：`docs/stage5-security-license-review.md`。
 - 当前 `apps/desktop/package.json` 还没有正式 Windows 打包脚本。
 - 尚未引入 `electron-builder` 或等价打包工具，需用户确认后联网安装。
 - 尚未决定 FFmpeg 是否随安装包分发；当前本机 FFmpeg 为外部依赖。
@@ -74,6 +75,5 @@ npm run stage5:runtime-check
 1. 补 Windows 打包配置和本地打包脚本。
 2. 决定 FFmpeg 分发策略：外部依赖提示或合规随包分发。
 3. 补启动前环境检查页面或命令，提示 FFmpeg、端口、Python、本地 API 状态。
-4. 补安全审查和许可证复核。
-5. 补最终用户使用说明。
-6. 做阶段5最终验收报告。
+4. 补最终用户使用说明。
+5. 做阶段5最终验收报告。

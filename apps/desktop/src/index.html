@@ -25,6 +25,35 @@
         </div>
       </section>
 
+      <section class="panel stage4-panel">
+        <div class="panel-title-row">
+          <h2>视频号半自动</h2>
+          <button id="build-wechat-plan">生成搜索计划</button>
+        </div>
+        <div class="stage4-grid">
+          <label>
+            视频号线索
+            <textarea id="wechat-query" placeholder="输入画面描述、关键词、台词或已知标题"></textarea>
+          </label>
+          <label>
+            补充关键词
+            <input id="wechat-keywords" placeholder="多个关键词用逗号分隔，例如 男人翻垃圾，旧空调" />
+          </label>
+        </div>
+        <div class="stage4-link-grid">
+          <label>
+            手动复制的公开链接
+            <input id="wechat-manual-url" placeholder="粘贴可公开访问的视频号网页链接或相关网页链接" />
+          </label>
+          <label>
+            素材标题
+            <input id="wechat-manual-title" placeholder="可选，不填会用视频号手动采集" />
+          </label>
+          <button id="save-wechat-manual-link">保存到当前项目</button>
+        </div>
+        <div class="stage4-output" id="wechat-plan-output">等待生成视频号人工搜索计划</div>
+      </section>
+
       <section class="workspace-row">
         <div class="panel">
           <h2>项目</h2>

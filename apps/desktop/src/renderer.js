@@ -15,6 +15,11 @@ const librarySort = document.querySelector("#library-sort");
 const showBrowserMaterialsButton = document.querySelector("#show-browser-materials");
 const refreshBrowserMaterialsButton = document.querySelector("#refresh-browser-materials");
 const screenshotDropzone = document.querySelector("#screenshot-dropzone");
+const wechatQuery = document.querySelector("#wechat-query");
+const wechatKeywords = document.querySelector("#wechat-keywords");
+const wechatPlanOutput = document.querySelector("#wechat-plan-output");
+const wechatManualUrl = document.querySelector("#wechat-manual-url");
+const wechatManualTitle = document.querySelector("#wechat-manual-title");
 let currentTaskId = null;
 let currentResults = [];
 let currentAssetId = null;
@@ -22,6 +27,7 @@ let currentAssetIds = [];
 let currentMatch = null;
 let currentBulkMatches = [];
 let libraryActionFilter = "all";
+let currentWechatPlan = null;
 
 function renderApiStatus(status) {
   if (!apiPill) return;
@@ -257,6 +263,99 @@ function renderResults(results) {
       </div>
     </article>
   `).join("");
+}
+
+function renderWechatPlan(plan) {
+  currentWechatPlan = plan;
+  const searchTerms = plan.search_terms || [];
+  const manualSteps = plan.manual_steps || [];
+  const collectionSteps = plan.collection_steps || [];
+  const boundaries = plan.safety_boundaries || [];
+  wechatPlanOutput.innerHTML = `
+    <div class="stage4-copy-grid">
+      <div class="copy-box">
+        <div class="copy-title">
+          <strong>微信内搜索</strong>
+          <button data-copy-block="wechat_search">复制</button>
+        </div>
+        <textarea readonly>${escapeHtml(plan.copy_blocks?.wechat_search || "")}</textarea>
+      </div>
+      <div class="copy-box">
+        <div class="copy-title">
+          <strong>网页辅助搜索</strong>
+          <button data-copy-block="web_assist_search">复制</button>
+        </div>
+        <textarea readonly>${escapeHtml(plan.copy_blocks?.web_assist_search || "")}</textarea>
+      </div>
+    </div>
+    <div class="stage4-list">
+      <h3>候选搜索词</h3>
+      ${searchTerms.map((term) => `<button class="term-button" data-copy-term="${escapeHtml(term)}">${escapeHtml(term)}</button>`).join("")}
+    </div>
+    <div class="stage4-columns">
+      <div>
+        <h3>人工搜索</h3>
+        <ol>${manualSteps.map((step) => `<li>${escapeHtml(step)}</li>`).join("")}</ol>
+      </div>
+      <div>
+        <h3>采集回素材库</h3>
+        <ol>${collectionSteps.map((step) => `<li>${escapeHtml(step)}</li>`).join("")}</ol>
+      </div>
+    </div>
+    <div class="safety-box">
+      <h3>安全边界</h3>
+      <ul>${boundaries.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+      <p>${escapeHtml(plan.matching_hint || "")}</p>
+    </div>
+  `;
+}
+
+async function copyText(text) {
+  const value = String(text || "");
+  if (!value) return;
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(value);
+    return;
+  }
+  const textarea = document.createElement("textarea");
+  textarea.value = value;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.left = "-9999px";
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand("copy");
+  textarea.remove();
+}
+
+async function saveWechatManualLink() {
+  const url = wechatManualUrl.value.trim();
+  const title = wechatManualTitle.value.trim() || "视频号手动采集";
+  if (!url) {
+    wechatPlanOutput.textContent = "请先粘贴一个公开链接";
+    return;
+  }
+  const projectId = projectSelect.value || (await ensureProject()).id;
+  const collected = await api("/api/browser/collect-page", {
+    method: "POST",
+    body: JSON.stringify({
+      url,
+      title,
+      project_id: Number(projectId),
+      project_name: "视频号半自动素材",
+      site_name: "微信视频号",
+      description: "用户手动复制公开链接后保存",
+    })
+  });
+  await refreshLibrary().catch(() => {});
+  wechatPlanOutput.innerHTML = `
+    <div class="safety-box">
+      <h3>已保存</h3>
+      <p>${escapeHtml(collected.result.title)} 已进入当前项目素材库。</p>
+      <p>来源仍标记为用户主动采集，版权状态默认未知，使用前请人工复核。</p>
+    </div>
+  `;
+  statusEl.textContent = "已保存视频号手动链接到当前项目";
 }
 
 function reviewStatusLabel(status) {
@@ -613,6 +712,49 @@ document.querySelector("#search").addEventListener("click", async () => {
     renderResults(results);
   } catch (error) {
     statusEl.textContent = `本地 API 不可用：${friendlyError(error)}`;
+  }
+});
+
+document.querySelector("#build-wechat-plan")?.addEventListener("click", async () => {
+  const fallbackQuery = document.querySelector("#query").value.trim();
+  const query = wechatQuery.value.trim() || fallbackQuery;
+  if (!query) {
+    wechatPlanOutput.textContent = "请先输入画面描述、关键词、台词或视频线索";
+    return;
+  }
+  wechatPlanOutput.textContent = "正在生成视频号人工搜索计划";
+  try {
+    const plan = await api("/api/wechat-channel/search-plan", {
+      method: "POST",
+      body: JSON.stringify({ query, keywords: parseTagInput(wechatKeywords.value) })
+    });
+    renderWechatPlan(plan);
+    statusEl.textContent = "已生成视频号半自动搜索计划";
+  } catch (error) {
+    wechatPlanOutput.textContent = `视频号搜索计划生成失败：${friendlyError(error)}`;
+  }
+});
+
+wechatPlanOutput?.addEventListener("click", async (event) => {
+  const blockButton = event.target.closest("button[data-copy-block]");
+  const termButton = event.target.closest("button[data-copy-term]");
+  if (!blockButton && !termButton) return;
+  try {
+    const text = blockButton
+      ? currentWechatPlan?.copy_blocks?.[blockButton.dataset.copyBlock]
+      : termButton.dataset.copyTerm;
+    await copyText(text);
+    statusEl.textContent = "已复制视频号搜索词";
+  } catch (error) {
+    statusEl.textContent = `复制失败：${friendlyError(error)}`;
+  }
+});
+
+document.querySelector("#save-wechat-manual-link")?.addEventListener("click", async () => {
+  try {
+    await saveWechatManualLink();
+  } catch (error) {
+    wechatPlanOutput.textContent = `视频号公开链接保存失败：${friendlyError(error)}`;
   }
 });
 

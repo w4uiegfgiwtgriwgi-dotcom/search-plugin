@@ -76,6 +76,10 @@ if FastAPI:
         published_at: str = ""
         site_name: str = ""
 
+    class WechatChannelSearchPlanRequest(BaseModel):
+        query: str
+        keywords: list[str] = Field(default_factory=list)
+
     class AnalyzeImageRequest(BaseModel):
         image_path: str
 
@@ -147,6 +151,13 @@ if FastAPI:
                 request.site_name,
             )
         except (KeyError, ValueError) as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.post("/api/wechat-channel/search-plan")
+    def build_wechat_channel_search_plan(request: WechatChannelSearchPlanRequest):
+        try:
+            return service.build_wechat_channel_search_plan(request.query, request.keywords)
+        except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     @app.post("/api/projects/{project_id}/materials", status_code=201)

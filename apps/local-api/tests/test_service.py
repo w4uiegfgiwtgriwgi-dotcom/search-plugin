@@ -52,6 +52,22 @@ class LocalApiServiceTest(unittest.TestCase):
         self.assertEqual(len(self.service.list_projects()), 1)
         with self.assertRaises(ValueError):
             self.service.collect_browser_page("chrome://settings", "设置页")
+    def test_wechat_channel_search_plan_is_manual_and_safe(self):
+        plan = self.service.build_wechat_channel_search_plan(
+            "极端高温废墟里男人翻垃圾，最后发现旧空调",
+            ["男人翻垃圾", "旧空调"],
+        )
+
+        self.assertEqual(plan["platform"], "wechat-channel")
+        self.assertEqual(plan["mode"], "semi_auto")
+        self.assertIn("极端高温废墟里男人翻垃圾，最后发现旧空调", plan["search_terms"])
+        self.assertIn("男人翻垃圾 原视频", plan["search_terms"])
+        self.assertIn("打开微信", plan["manual_steps"][0])
+        self.assertTrue(any("不读取或保存微信密码" in item for item in plan["safety_boundaries"]))
+        self.assertIn("微信视频号", plan["copy_blocks"]["web_assist_search"])
+
+        with self.assertRaises(ValueError):
+            self.service.build_wechat_channel_search_plan("")
     def test_query_helpers(self):
         self.assertIn("air conditioner", expand_query("旧空调"))
         self.assertEqual(normalize_url("HTTPS://Example.COM/a?utm_source=x&id=1#top"), "https://example.com/a?id=1")

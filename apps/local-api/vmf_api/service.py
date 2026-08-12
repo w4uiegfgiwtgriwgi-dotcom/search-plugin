@@ -19,6 +19,7 @@ class LocalApiService:
     MAX_MATERIAL_TAG_LENGTH = 40
     MAX_MATERIAL_NOTE_LENGTH = 1000
     MAX_BROWSER_FIELD_LENGTH = 500
+    MAX_STAGE4_QUERY_LENGTH = 800
 
     def __init__(self, db_path: str | Path = "./.local-data/video-material-finder.sqlite", adapters: dict[str, PlatformAdapter] | None = None):
         self.db = Database(db_path)
@@ -148,6 +149,81 @@ class LocalApiService:
         if not normalized:
             return ""
         return normalized if normalized.startswith(("http://", "https://")) else ""
+    def build_wechat_channel_search_plan(self, query: str, keywords: list[str] | None = None) -> dict[str, Any]:
+        normalized_query = " ".join(str(query or "").split())
+        if not normalized_query:
+            raise ValueError("请先输入画面描述、关键词、台词或视频线索")
+        if len(normalized_query) > self.MAX_STAGE4_QUERY_LENGTH:
+            raise ValueError(f"视频号搜索线索不能超过 {self.MAX_STAGE4_QUERY_LENGTH} 个字符")
+        normalized_keywords = self._normalize_stage4_keywords(keywords or [])
+        expanded = expand_query(normalized_query)
+        search_terms = self._build_wechat_channel_terms(normalized_query, normalized_keywords, expanded)
+        return {
+            "platform": "wechat-channel",
+            "platform_label": "微信视频号",
+            "mode": "semi_auto",
+            "mode_label": "半自动人工搜索",
+            "input_query": normalized_query,
+            "keywords": normalized_keywords,
+            "search_terms": search_terms,
+            "copy_blocks": {
+                "wechat_search": "\n".join(search_terms[:6]),
+                "web_assist_search": "\n".join([f"微信视频号 {term}" for term in search_terms[:4]]),
+            },
+            "manual_steps": [
+                "打开微信，进入视频号或微信搜索。",
+                "优先复制第一组搜索词进行搜索；结果太少时，再逐条尝试后面的搜索词。",
+                "看到疑似素材后，先人工确认标题、作者、发布时间、画面和评论区线索。",
+                "如果能在浏览器中打开公开页面，再使用本项目浏览器扩展保存当前公开页面。",
+                "如果只能在微信客户端中查看，请手动复制公开链接、标题或截图，再回到本项目做收藏或截图反查。",
+            ],
+            "collection_steps": [
+                "保存公开页面后，回到桌面端项目素材区点击“刷新素材”。",
+                "对疑似匹配素材标记复核状态，版权未确认前保持“未知”或“需授权”。",
+                "需要比对画面时，截取关键帧并使用截图反查匹配候选视频。",
+            ],
+            "safety_boundaries": [
+                "不读取或保存微信密码、Cookie、Token 或登录态。",
+                "不做验证码绕过、代理证书拦截、DRM 破解或加密视频解密。",
+                "不自动翻页、不批量抓取、不自动发布、评论、点赞、关注或私信。",
+                "只整理搜索词、人工步骤和用户主动提供或公开可访问的内容。",
+            ],
+            "matching_hint": "视频号结果开放能力有限。当前阶段只提供人工搜索词和采集指引；画面匹配仍建议用用户保存的公开页面、截图或本地候选视频完成。",
+        }
+    def _normalize_stage4_keywords(self, keywords: list[str]) -> list[str]:
+        normalized: list[str] = []
+        seen: set[str] = set()
+        for keyword in keywords:
+            cleaned = " ".join(str(keyword or "").split())
+            if not cleaned or cleaned in seen:
+                continue
+            if len(cleaned) > 80:
+                raise ValueError("单个视频号关键词不能超过 80 个字符")
+            normalized.append(cleaned)
+            seen.add(cleaned)
+            if len(normalized) >= 12:
+                break
+        return normalized
+    def _build_wechat_channel_terms(self, query: str, keywords: list[str], expanded: list[str]) -> list[str]:
+        candidates = [
+            query,
+            *keywords,
+            *expanded,
+            *(f"{query} {keyword}" for keyword in keywords[:4]),
+            *(f"{keyword} 原视频" for keyword in keywords[:4]),
+            *(f"{keyword} 同款画面" for keyword in keywords[:4]),
+        ]
+        terms: list[str] = []
+        seen: set[str] = set()
+        for candidate in candidates:
+            cleaned = " ".join(str(candidate or "").split())
+            if not cleaned or cleaned in seen:
+                continue
+            terms.append(cleaned)
+            seen.add(cleaned)
+            if len(terms) >= 12:
+                break
+        return terms
     def list_materials(self, project_id: int) -> list[dict[str, Any]]:
         rows = self.db.query_all("""
             SELECT pm.*, sr.title, sr.platform, sr.source_url, sr.cover_url, sr.author_name, sr.description, sr.published_at, sr.raw_metadata_json

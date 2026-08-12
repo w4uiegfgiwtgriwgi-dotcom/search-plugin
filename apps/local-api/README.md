@@ -35,3 +35,11 @@ Invoke-RestMethod -Method Post -Uri http://127.0.0.1:17860/api/assets/analyze-im
 ```powershell
 Invoke-RestMethod -Method Post -Uri http://127.0.0.1:17860/api/matches/find -ContentType 'application/json' -Body '{"query_asset_id":1,"candidate_video_path":"E:\\搜索插件\\tests\\fixtures\\stage2\\stage2-self-made-testsrc.mp4","fps":1,"threshold":0.75}'
 ```
+
+## 阶段4视频号半自动搜索计划
+
+当前只生成搜索词和人工操作指引，不自动登录微信、不读取登录态、不自动翻页或批量采集。
+
+```powershell
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:17860/api/wechat-channel/search-plan -ContentType 'application/json' -Body '{"query":"极端高温废墟里男人翻垃圾，最后发现旧空调","keywords":["男人翻垃圾","旧空调"]}'
+```

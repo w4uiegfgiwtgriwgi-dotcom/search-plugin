@@ -84,6 +84,7 @@ node --check src\popup.js
 - `docs/stage1-acceptance-report.md`
 - `docs/stage2-acceptance-report.md`
 - `docs/stage3-browser-extension-report.md`
+- `docs/stage3-acceptance-report.md`
 - `docs/stage3-manual-acceptance.md`
 
 ## 重要边界

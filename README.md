@@ -53,10 +53,12 @@ npm test
 npm run test:api
 npm run stage3:check
 npm run stage4:check
+npm run stage5:preflight
 ```
 
 `npm run stage3:check` 会依次运行 Node 单元测试、API 测试、扩展脚本语法检查和 Electron 冒烟。
 `npm run stage4:check` 会在阶段3检查基础上，额外检查桌面端脚本和阶段4验收文档。
+`npm run stage5:preflight` 会在阶段4检查基础上，额外检查打包前关键文件、FFmpeg、Python 和 Electron 依赖。
 
 阶段2/3 常用检查：
 
@@ -92,6 +94,7 @@ node --check src\popup.js
 - `docs/stage4-wechat-channel-semi-auto-report.md`
 - `docs/stage4-manual-acceptance.md`
 - `docs/stage4-acceptance-report.md`
+- `docs/stage5-production-readiness.md`
 
 ## 重要边界
 

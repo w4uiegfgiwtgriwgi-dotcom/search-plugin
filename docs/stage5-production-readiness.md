@@ -32,8 +32,10 @@ npm run stage5:preflight
 
 ## 打包前必须处理
 
-- 当前 `apps/desktop/package.json` 还没有 Windows 打包脚本。
-- 尚未引入 `electron-builder` 或等价打包工具。
+- 已新增 Windows 打包方案：`docs/stage5-windows-package-plan.md`。
+- 已新增打包方案检查：`npm run stage5:package-plan`。
+- 当前 `apps/desktop/package.json` 还没有正式 Windows 打包脚本。
+- 尚未引入 `electron-builder` 或等价打包工具，需用户确认后联网安装。
 - 尚未决定 FFmpeg 是否随安装包分发；当前本机 FFmpeg 为外部依赖。
 - 如果未来随包分发 FFmpeg，必须重新确认 GPL/LGPL 构建和分发义务。
 - 尚未设计自动更新策略。

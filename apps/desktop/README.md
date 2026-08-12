@@ -23,3 +23,18 @@ npm start
 ```powershell
 npm run smoke
 ```
+
+## Windows 打包准备
+
+阶段5当前只完成打包方案，尚未安装打包工具，也尚未生成安装包。
+
+详见：
+
+- `..\..\docs\stage5-windows-package-plan.md`
+
+打包方案检查：
+
+```powershell
+cd E:\搜索插件
+npm run stage5:package-plan
+```

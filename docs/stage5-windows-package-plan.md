@@ -82,6 +82,7 @@ E:\搜索插件\apps\desktop\dist
 - `electron-builder` 安装成功。
 - `npm run smoke` 通过，桌面端仍能启动并连接本地 API。
 - `npm run stage5:package-plan` 通过，打包方案检查能识别 `electron-builder` 已安装。
+- 新增 `docs/stage5-package-troubleshooting.md`，记录打包失败诊断和重试步骤。
 
 尚未完成：
 
@@ -98,6 +99,7 @@ E:\搜索插件\apps\desktop\dist
 - 打包配置已接入。
 - 安装包产物尚未验证通过。
 - 需要网络稳定后重新运行 `npm run pack`，再进入 `npm run dist`。
+- 具体重试步骤见 `docs/stage5-package-troubleshooting.md`。
 
 ## 当前不做
 

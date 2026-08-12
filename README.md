@@ -1,29 +1,94 @@
-﻿# 全网视频素材智能搜索助手
+# 全网视频素材智能搜索助手
 
-当前阶段：阶段0（仓库与技术验证）。
+当前阶段：阶段3（浏览器扩展与本地 API 打通）。
 
-本仓库只包含阶段0所需的最小 Monorepo 骨架、技术验证脚本、测试和报告。未经明确同意，不创建远程仓库、不推送 GitHub、不进入阶段1。
+这是一个 Windows 本地素材搜索与截图反查 MVP，包含桌面端、本地 API、Chrome MV3 扩展骨架和本地素材库。当前仍使用 Mock OCR 与 Mock 视觉向量，不宣称真实平台全网搜索能力。
 
-## 阶段0范围
+## 当前能力
 
-- 建立本地 Git 仓库与最小目录结构
-- 检查候选开源依赖许可证和风险
-- 验证 FFmpeg/ffprobe 是否可用
-- 验证 OCR Provider 接口（阶段0使用 Mock）
-- 验证感知哈希最小流程
-- 验证视觉向量 Provider 接口（阶段0使用 Mock）
-- 验证一个公开网页搜索适配器的结果归一化能力（阶段0使用录制样本，避免高频访问真实平台）
+- 本地 API：FastAPI + SQLite，支持搜索样本、项目、素材收藏、素材库筛选和导出。
+- 桌面端：Electron 启动后会检查并自动拉起本地 API，支持搜索、项目素材、截图反查、导出和浏览器采集提示。
+- 截图反查：支持截图上传、拖拽/粘贴、批量截图、候选视频抽帧、粗扫加精排、时间点定位和匹配帧收藏。
+- 素材库：支持搜索收藏和截图反查收藏统一管理，包含复核状态、版权状态、标签备注、可信度、待处理清单、可用状态和时间线。
+- 浏览器扩展：用户主动点击后读取当前公开页面标题、URL、作者、描述、封面、发布时间和站点名，并保存到本地素材库。
 
-## 本地命令
+## 快速启动
+
+安装依赖后启动桌面端：
 
 ```powershell
-node scripts/stage0/run-stage0-checks.mjs
-npm test
+cd E:\搜索插件\apps\desktop
+npm start
 ```
+
+桌面端会连接或自动拉起 `http://127.0.0.1:17860` 本地 API。
+
+也可以单独启动本地 API：
+
+```powershell
+cd E:\搜索插件
+.\.venv\Scripts\python.exe scripts\run-fastapi-api.py
+```
+
+## 浏览器扩展验收
+
+Chrome 手动加载扩展目录：
+
+```text
+E:\搜索插件\apps\browser-extension
+```
+
+详细步骤见：
+
+- `docs/stage3-manual-acceptance.md`
+
+扩展只在用户主动点击后读取当前可见页面公开信息，不读取密码、Cookie、Token 或登录态。
+
+## 常用测试
+
+```powershell
+cd E:\搜索插件
+npm test
+npm run test:api
+```
+
+阶段2/3 常用检查：
+
+```powershell
+cd E:\搜索插件\apps\local-api
+& '..\..\.venv\Scripts\python.exe' -m unittest tests.test_service tests.test_stage2_media_matching
+& '..\..\.venv\Scripts\python.exe' scripts\stage2_robustness_check.py
+& '..\..\.venv\Scripts\python.exe' scripts\stage3_browser_collect_smoke.py
+```
+
+桌面端冒烟：
+
+```powershell
+cd E:\搜索插件\apps\desktop
+npm run smoke
+```
+
+扩展脚本语法检查：
+
+```powershell
+cd E:\搜索插件\apps\browser-extension
+node --check src\popup.js
+```
+
+## 阶段报告
+
+- `docs/stage0-report.md`
+- `docs/stage1-acceptance-report.md`
+- `docs/stage2-acceptance-report.md`
+- `docs/stage3-browser-extension-report.md`
+- `docs/stage3-manual-acceptance.md`
 
 ## 重要边界
 
 - 不保存密码、完整 Cookie、Token 或登录态。
 - 不实现验证码绕过、DRM 破解、代理证书拦截或加密视频解密。
 - 不使用真实账号进行无人值守高频测试。
+- 不自动发布、评论、点赞、关注或私信。
+- 不承诺搜索互联网中的所有内容。
+- 当前 OCR、视觉向量和部分平台能力仍是 Mock 或样本适配器。
 - 未经许可证审查，不复制第三方仓库代码。

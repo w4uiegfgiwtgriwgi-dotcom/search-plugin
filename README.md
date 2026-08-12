@@ -50,7 +50,10 @@ E:\搜索插件\apps\browser-extension
 cd E:\搜索插件
 npm test
 npm run test:api
+npm run stage3:check
 ```
+
+`npm run stage3:check` 会依次运行 Node 单元测试、API 测试、扩展脚本语法检查和 Electron 冒烟。
 
 阶段2/3 常用检查：
 

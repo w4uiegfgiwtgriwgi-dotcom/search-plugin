@@ -13,6 +13,8 @@
     "stage5:preflight": "powershell -ExecutionPolicy Bypass -File scripts/stage5-preflight.ps1",
     "stage5:package-plan": "powershell -ExecutionPolicy Bypass -File scripts/stage5-package-plan.ps1",
     "stage5:runtime-check": "powershell -ExecutionPolicy Bypass -File scripts/stage5-runtime-check.ps1",
+    "stage5:backup-data": "powershell -ExecutionPolicy Bypass -File scripts/stage5-backup-data.ps1",
+    "stage5:restore-data": "powershell -ExecutionPolicy Bypass -File scripts/stage5-restore-data.ps1",
     "api:dev": ".\\.venv\\Scripts\\python.exe scripts/run-fastapi-api.py",
     "api:legacy": "set PYTHONPATH=apps/local-api&& C:\\Users\\Administrator.DESKTOP-P33KF9U\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe -m vmf_api.server",
     "desktop:start": "cd apps/desktop && npm start"

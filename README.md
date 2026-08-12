@@ -91,6 +91,7 @@ node --check src\popup.js
 
 ## 阶段报告
 
+- `docs/user-guide.md`
 - `docs/stage0-report.md`
 - `docs/stage1-acceptance-report.md`
 - `docs/stage2-acceptance-report.md`

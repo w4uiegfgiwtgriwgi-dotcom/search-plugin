@@ -16,6 +16,9 @@
     "stage5:backup-data": "powershell -ExecutionPolicy Bypass -File scripts/stage5-backup-data.ps1",
     "stage5:restore-data": "powershell -ExecutionPolicy Bypass -File scripts/stage5-restore-data.ps1",
     "stage6:check-sources": "powershell -ExecutionPolicy Bypass -File scripts/stage6-check-sources.ps1",
+    "stage6:login-xhs": "powershell -ExecutionPolicy Bypass -File scripts/stage6-login-source.ps1 -Platform xiaohongshu",
+    "stage6:login-xhs:qrcode": "powershell -ExecutionPolicy Bypass -File scripts/stage6-login-source.ps1 -Platform xiaohongshu -QrCode",
+    "stage6:login-douyin": "powershell -ExecutionPolicy Bypass -File scripts/stage6-login-source.ps1 -Platform douyin",
     "api:dev": ".\\.venv\\Scripts\\python.exe scripts/run-fastapi-api.py",
     "api:legacy": "set PYTHONPATH=apps/local-api&& C:\\Users\\Administrator.DESKTOP-P33KF9U\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe -m vmf_api.server",
     "desktop:start": "cd apps/desktop && npm start"

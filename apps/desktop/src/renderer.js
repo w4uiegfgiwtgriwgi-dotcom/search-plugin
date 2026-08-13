@@ -129,20 +129,20 @@ function loginGuidesHtml() {
     {
       platform: "xiaohongshu",
       title: "小红书登录授权",
-      command: "xhs login --cookie-source chrome --json",
+      command: "npm run stage6:login-xhs",
       steps: [
         "先用 Chrome 打开小红书官网并登录账号。",
-        "复制下面命令，在项目终端里运行；如果浏览器不是 Chrome，把 chrome 换成 edge 或直接用 xhs login --qrcode。",
+        "复制下面命令，在项目终端里运行；需要扫码时可运行 npm run stage6:login-xhs:qrcode。",
         "命令成功后回到这里刷新候选源，再勾选小红书真实候选搜索。",
       ],
     },
     {
       platform: "douyin",
       title: "抖音登录授权",
-      command: "dy login --browser",
+      command: "npm run stage6:login-douyin",
       steps: [
         "先用浏览器打开抖音网页版并登录账号。",
-        "复制下面命令，在项目终端里运行，让 CLI 从已登录浏览器读取 Cookie。",
+        "复制下面命令，在项目终端里运行，让 CLI 从已登录浏览器读取 Cookie，并保存到插件检测目录。",
         "命令成功后回到这里刷新候选源，再勾选抖音真实候选搜索。",
       ],
     },

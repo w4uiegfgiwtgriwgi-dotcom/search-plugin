@@ -47,23 +47,24 @@ $env:VMF_SEARCH_CLI_HOME = '候选源登录和缓存目录'
 ## 登录授权引导
 
 桌面端候选源状态区会显示小红书和抖音的登录引导，并提供一键复制命令。
+建议优先使用本项目封装的登录命令，因为它会把登录态保存到插件检测目录。
 
 小红书常用方式：
 
 ```powershell
-xhs login --cookie-source chrome --json
+npm run stage6:login-xhs
 ```
 
-如果浏览器不是 Chrome，可以把 `chrome` 换成 `edge`，或使用扫码方式：
+小红书扫码方式：
 
 ```powershell
-xhs login --qrcode
+npm run stage6:login-xhs:qrcode
 ```
 
 抖音常用方式：
 
 ```powershell
-dy login --browser
+npm run stage6:login-douyin
 ```
 
 建议步骤：

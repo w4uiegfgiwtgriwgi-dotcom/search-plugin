@@ -73,8 +73,9 @@ $env:VMF_SEARCH_CLI_HOME = "候选源登录和缓存目录"
 桌面端候选源状态区会显示登录引导，也可以直接复制以下命令：
 
 ```powershell
-xhs login --cookie-source chrome --json
-dy login --browser
+npm run stage6:login-xhs
+npm run stage6:login-xhs:qrcode
+npm run stage6:login-douyin
 ```
 
 详细说明见 `docs/stage6-real-search-candidates.md`。

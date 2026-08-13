@@ -53,7 +53,15 @@ function selectedUnavailablePlatforms() {
   return selectedPlatforms().filter((platform) => {
     if (!["xiaohongshu", "douyin"].includes(platform)) return false;
     const session = platformStatus.get(platform)?.session || {};
-    return session.status !== "available";
+    return session.status === "not_configured";
+  });
+}
+
+function selectedNeedsLoginPlatforms() {
+  return selectedPlatforms().filter((platform) => {
+    if (!["xiaohongshu", "douyin"].includes(platform)) return false;
+    const session = platformStatus.get(platform)?.session || {};
+    return session.status === "needs_login";
   });
 }
 
@@ -361,18 +369,18 @@ function renderSourceStatus(platforms) {
   };
   const parts = ["xiaohongshu", "douyin"].map((platform) => {
     const session = platformStatus.get(platform)?.session || {};
-    const available = session.status === "available";
-    const text = `${labels[platform]}：${available ? "命令已找到" : "未配置"}`;
-    const title = available
-      ? `已找到 ${session.path || session.command || "候选源命令"}；真实搜索仍需要平台登录态和正常网络。`
-      : (session.hint || session.command || "");
-    return `<span class="source-chip ${available ? "is-ready" : "is-missing"}" title="${escapeHtml(title)}">${escapeHtml(text)}</span>`;
+    const ready = session.status === "available";
+    const needsLogin = session.status === "needs_login";
+    const text = `${labels[platform]}：${ready ? "登录态已保存" : needsLogin ? "未登录" : "未配置"}`;
+    const title = session.hint || session.command || "";
+    const className = ready ? "is-ready" : needsLogin ? "is-warning" : "is-missing";
+    return `<span class="source-chip ${className}" title="${escapeHtml(title)}">${escapeHtml(text)}</span>`;
   });
   sourceStatusEl.innerHTML = `
     <div class="source-status-row">
       <span>真实候选源</span>
       ${parts.join("")}
-      <span class="source-help">命令已找到不等于已登录；真实搜索还需要平台登录态、网络正常。</span>
+      <span class="source-help">未登录时先按下方引导保存登录态；搜索还需要网络正常。</span>
     </div>
     <div class="login-guide-grid">
       ${loginGuidesHtml()}
@@ -829,6 +837,10 @@ document.querySelector("#search").addEventListener("click", async () => {
     if (unavailable.length > 0) {
       statusEl.textContent = unavailablePlatformMessage(unavailable);
       return;
+    }
+    const needsLogin = selectedNeedsLoginPlatforms();
+    if (needsLogin.length > 0) {
+      statusEl.textContent = `${needsLogin.map(platformLabel).join(" / ")} 还没检测到登录态；可以先按下方引导登录，或继续尝试搜索查看平台返回提示。`;
     }
     await ensureProject();
     const task = await api("/api/search/tasks", {

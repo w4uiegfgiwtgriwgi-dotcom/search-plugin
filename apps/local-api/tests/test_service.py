@@ -122,6 +122,30 @@ class LocalApiServiceTest(unittest.TestCase):
 
         self.assertIn("需要先完成登录授权", xhs_error)
         self.assertIn("网络访问被系统或当前运行环境拦截", douyin_error)
+    def test_stage6_session_status_checks_login_files(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            old_home = os.environ.get("VMF_SEARCH_CLI_HOME")
+            os.environ["VMF_SEARCH_CLI_HOME"] = temp_dir
+            try:
+                xhs = XiaohongshuCliAdapter()
+                douyin = DouyinCliAdapter()
+                self.assertEqual(xhs.check_session()["status"], "needs_login")
+                self.assertEqual(douyin.check_session()["status"], "needs_login")
+
+                xhs_cookie = Path(temp_dir) / ".xiaohongshu-cli" / "cookies.json"
+                dy_cookie = Path(temp_dir) / ".dy" / "cookies" / "default.json"
+                xhs_cookie.parent.mkdir(parents=True)
+                dy_cookie.parent.mkdir(parents=True)
+                xhs_cookie.write_text('{"a1":"test"}', encoding="utf-8")
+                dy_cookie.write_text('{"sessionid":"test"}', encoding="utf-8")
+
+                self.assertEqual(xhs.check_session()["status"], "available")
+                self.assertEqual(douyin.check_session()["status"], "available")
+            finally:
+                if old_home is None:
+                    os.environ.pop("VMF_SEARCH_CLI_HOME", None)
+                else:
+                    os.environ["VMF_SEARCH_CLI_HOME"] = old_home
     def test_query_helpers(self):
         self.assertIn("air conditioner", expand_query("旧空调"))
         self.assertEqual(normalize_url("HTTPS://Example.COM/a?utm_source=x&id=1#top"), "https://example.com/a?id=1")

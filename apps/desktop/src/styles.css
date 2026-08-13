@@ -22,6 +22,7 @@ textarea { width: 100%; min-height: 104px; box-sizing: border-box; border: 1px s
 .source-status-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .source-chip { border: 1px solid #d7dde3; border-radius: 999px; padding: 4px 8px; background: #f8fafc; color: #26313d; }
 .source-chip.is-ready { background: #dff7e8; color: #175c32; border-color: #7cc695; }
+.source-chip.is-warning { background: #fff7df; color: #725000; border-color: #e0c36b; }
 .source-chip.is-missing { background: #fff4cc; color: #6a4b00; border-color: #d6b85a; }
 .source-help { color: #7a8694; }
 .login-guide-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }

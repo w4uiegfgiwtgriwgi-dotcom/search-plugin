@@ -130,12 +130,19 @@ class ExternalCliSearchAdapter(PlatformAdapter):
     def check_session(self) -> dict[str, Any]:
         command = self._build_command("测试", 1)[0]
         executable = self._resolve_executable(command)
+        login = self._login_state()
+        status = "not_configured"
+        if executable and login["status"] == "ready":
+            status = "available"
+        elif executable:
+            status = "needs_login"
         return {
             "platform": self.platform,
-            "status": "available" if executable else "not_configured",
+            "status": status,
             "command": command,
             "path": executable or "",
-            "hint": "" if executable else f"未找到 {command} 命令；安装对应开源 CLI 后，或设置 {self.command_template_env} 指向实际搜索命令。",
+            "login": login,
+            "hint": self._session_hint(command, executable, login),
         }
 
     def search(self, query: str, options: SearchOptions) -> list[SearchResult]:
@@ -216,6 +223,21 @@ class ExternalCliSearchAdapter(PlatformAdapter):
             except OSError:
                 continue
         return Path(tempfile.gettempdir())
+
+    def _login_state(self) -> dict[str, Any]:
+        return {
+            "status": "unknown",
+            "label": "登录态未知",
+            "paths": [],
+            "hint": "当前平台没有专门的登录态检查规则。",
+        }
+
+    def _session_hint(self, command: str, executable: str, login: dict[str, Any]) -> str:
+        if not executable:
+            return f"未找到 {command} 命令；安装对应开源 CLI 后，或设置 {self.command_template_env} 指向实际搜索命令。"
+        if login.get("status") == "ready":
+            return f"{self.platform_label} 命令和登录态都已找到，可以尝试真实搜索。"
+        return str(login.get("hint") or f"{self.platform_label} 命令已找到，但还没检查到登录态。")
 
     def _friendly_cli_error(self, detail: str) -> str:
         normalized = str(detail or "").strip()
@@ -338,11 +360,31 @@ class XiaohongshuCliAdapter(ExternalCliSearchAdapter):
     command_template_env = "VMF_XHS_SEARCH_COMMAND"
     default_command_template = 'xhs search "{query}" --type video --json'
 
+    def _login_state(self) -> dict[str, Any]:
+        cookie_path = self._runtime_home() / ".xiaohongshu-cli" / "cookies.json"
+        ready = cookie_path.exists() and cookie_path.stat().st_size > 0
+        return {
+            "status": "ready" if ready else "missing",
+            "label": "登录态已保存" if ready else "未检测到登录态",
+            "paths": [str(cookie_path)],
+            "hint": "已找到小红书 Cookie，可以尝试真实搜索。" if ready else "未找到小红书登录态；请先运行 xhs login --cookie-source chrome --json，或使用 xhs login --qrcode。",
+        }
+
 class DouyinCliAdapter(ExternalCliSearchAdapter):
     platform = "douyin"
     platform_label = "抖音"
     command_template_env = "VMF_DOUYIN_SEARCH_COMMAND"
     default_command_template = 'dy search "{query}" --type video --count {limit} --json-output'
+
+    def _login_state(self) -> dict[str, Any]:
+        cookie_path = self._runtime_home() / ".dy" / "cookies" / "default.json"
+        ready = cookie_path.exists() and cookie_path.stat().st_size > 0
+        return {
+            "status": "ready" if ready else "missing",
+            "label": "登录态已保存" if ready else "未检测到登录态",
+            "paths": [str(cookie_path)],
+            "hint": "已找到抖音 Cookie，可以尝试真实搜索。" if ready else "未找到抖音登录态；请先在浏览器登录抖音网页版，再运行 dy login --browser。",
+        }
 
     def _source_url(self, item: dict[str, Any]) -> str:
         source = self._pick(item, "source_url", "url", "share_url", "link", "href", "aweme_url")

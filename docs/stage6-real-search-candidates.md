@@ -104,6 +104,17 @@ npm run test:api
 ```
 
 `stage6:check-sources` 会检查当前机器是否能找到 `xhs` 和 `dy` 命令。
+同时会显示候选源登录态文件是否存在：
+
+- 小红书：`.xiaohongshu-cli/cookies.json`
+- 抖音：`.dy/cookies/default.json`
+
+桌面端候选源状态含义：
+
+- `未配置`：没有找到 CLI 命令。
+- `未登录`：CLI 命令已找到，但还没有检测到登录态文件。
+- `登录态已保存`：CLI 命令和登录态文件都已找到，可以尝试真实搜索。
+
 `test:api` 会模拟小红书/抖音 CLI JSON 输出，验证：
 
 - JSON 可解析。

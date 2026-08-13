@@ -2,7 +2,7 @@
 
 > 日期：2026-08-12  
 > 范围：Windows 安装包方案、打包依赖、FFmpeg 分发策略和下一步执行条件。  
-> 结论：已安装 `electron-builder` 并加入保守的 Windows 打包配置；当前先验证目录包，再生成安装包。
+> 结论：已安装 `electron-builder` 并加入 Windows 打包配置；目录包、NSIS 安装包、安装版冒烟和卸载验收均已通过。
 
 ## 推荐打包工具
 
@@ -18,8 +18,9 @@
 
 - `electron-builder` 已安装到桌面端开发依赖。
 - `apps/desktop/package.json` 已加入 `pack` 和 `dist` 脚本，并关闭证书自动探测、自动发布和 Windows 可执行文件资源编辑。
-- 打包配置只包含桌面端入口、预加载脚本、API 拉起脚本、静态 UI 和桌面端 `package.json`。
-- 当前不会把 `.venv`、`.local-data`、`backups`、FFmpeg 二进制或根目录测试素材打进安装包。
+- 打包配置包含桌面端入口、预加载脚本、API 拉起脚本、静态 UI、桌面端 `package.json`、本地 API 源码、启动脚本和 Python 虚拟环境。
+- 当前不会把 `.local-data`、`backups`、FFmpeg 二进制或根目录测试素材打进安装包。
+- 已配置 `electronDist` 使用本地 Electron 运行时，减少打包阶段对 GitHub 下载的依赖。
 
 ## 推荐打包产物
 
@@ -82,11 +83,18 @@ E:\搜索插件\apps\desktop\dist
 - `electron-builder` 安装成功。
 - `npm run smoke` 通过，桌面端仍能启动并连接本地 API。
 - `npm run stage5:package-plan` 通过，打包方案检查能识别 `electron-builder` 已安装。
+- `npm run pack` 已成功生成 `dist\win-unpacked`。
+- `npm run dist` 已成功生成 `dist\全网视频素材智能搜索助手 Setup 0.1.0-stage1.exe`。
+- 打包后目录包冒烟通过，输出 `electron smoke api status: ready`。
+- 安装包静默安装通过，返回 `exitCode=0`。
+- 安装版冒烟通过，输出 `electron smoke api status: ready`。
+- 安装版静默卸载通过，返回 `exitCode=0`，测试安装目录已清理。
 - 新增 `docs/stage5-package-troubleshooting.md`，记录打包失败诊断和重试步骤。
 
 尚未完成：
 
-- `npm run pack` 尚未成功生成 `dist\win-unpacked`。
+- 尚未签名安装包。
+- 尚未配置自动更新。
 
 已观察到的问题：
 
@@ -96,10 +104,10 @@ E:\搜索插件\apps\desktop\dist
 
 当前判断：
 
-- 打包配置已接入。
-- 安装包产物尚未验证通过。
-- 需要网络稳定后重新运行 `npm run pack`，再进入 `npm run dist`。
-- 具体重试步骤见 `docs/stage5-package-troubleshooting.md`。
+- 打包配置已接入并通过本地打包验证。
+- 目录包产物已通过冒烟验证。
+- 安装包产物已生成并通过安装/卸载验收。
+- 具体诊断记录见 `docs/stage5-package-troubleshooting.md`。
 
 ## 当前不做
 

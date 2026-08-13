@@ -2,7 +2,7 @@
 
 > 日期：2026-08-12  
 > 范围：Windows 打包前预检、环境依赖、数据目录、许可证风险和阶段5执行顺序。  
-> 结论：当前可以进入阶段5生产化准备，但尚未生成 Windows 安装包。
+> 结论：阶段5生产化准备已完成；Windows 目录包、NSIS 安装包、安装版冒烟和卸载验收均已通过。
 
 ## 当前生产化状态
 
@@ -57,8 +57,12 @@ npm run stage5:runtime-check
 - 已新增安全审查与许可证复核：`docs/stage5-security-license-review.md`。
 - 已新增最终用户使用说明：`docs/user-guide.md`。
 - 已安装 `electron-builder` 并新增桌面端 `pack` / `dist` 脚本。
-- 当前打包配置不包含 `.venv`、`.local-data`、`backups` 或 FFmpeg 二进制。
-- 当前 `npm run pack` 尚未成功生成目录包，原因是 electron-builder 打包阶段访问 GitHub 资源时网络重置或超时。
+- 当前打包配置不包含 `.local-data`、`backups` 或 FFmpeg 二进制。
+- 已把本地 API 源码、启动脚本和 Python 虚拟环境随桌面端安装包提供。
+- 当前 `npm run pack` 已成功生成目录包。
+- 当前 `npm run dist` 已成功生成 Windows NSIS 安装包。
+- 打包后目录包冒烟已通过，输出 `electron smoke api status: ready`。
+- 安装包静默安装、安装版冒烟和静默卸载均已通过。
 - 已新增打包诊断与重试说明：`docs/stage5-package-troubleshooting.md`。
 - 已新增阶段5最终验收报告：`docs/stage5-acceptance-report.md`。
 - 尚未决定 FFmpeg 是否随安装包分发；当前本机 FFmpeg 为外部依赖。
@@ -75,7 +79,6 @@ npm run stage5:runtime-check
 
 ## 阶段5建议顺序
 
-1. 补 Windows 打包配置和本地打包脚本。
-2. 决定 FFmpeg 分发策略：外部依赖提示或合规随包分发。
-3. 补启动前环境检查页面或命令，提示 FFmpeg、端口、Python、本地 API 状态。
-4. 做阶段5最终验收报告。
+1. 根据需要补安装包签名、图标和第三方依赖许可证清单。
+2. 根据需要配置自动更新和发布渠道。
+3. 根据需要接入真实 OCR / 真实视觉向量 / 真实平台 API。

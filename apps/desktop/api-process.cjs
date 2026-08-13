@@ -1,5 +1,6 @@
 const http = require("node:http");
 const path = require("node:path");
+const fs = require("node:fs");
 const { spawn } = require("node:child_process");
 
 const API_HOST = "127.0.0.1";
@@ -7,7 +8,18 @@ const API_PORT = 17860;
 const API_ORIGIN = `http://${API_HOST}:${API_PORT}`;
 
 function projectRoot() {
+  if (appRuntimeRoot()) {
+    return appRuntimeRoot();
+  }
   return path.resolve(__dirname, "..", "..");
+}
+
+function appRuntimeRoot() {
+  if (!process.resourcesPath) {
+    return null;
+  }
+  const runtimeRoot = path.join(process.resourcesPath, "app-runtime");
+  return fs.existsSync(runtimeRoot) ? runtimeRoot : null;
 }
 
 function pythonPath(root = projectRoot()) {
@@ -73,6 +85,7 @@ module.exports = {
   ensureApiRunning,
   stopOwnedApi,
   projectRoot,
+  appRuntimeRoot,
   pythonPath,
   apiScriptPath,
 };

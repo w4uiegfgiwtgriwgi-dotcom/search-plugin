@@ -2,7 +2,7 @@
 
 > 日期：2026-08-12  
 > 范围：生产化预检、Windows 打包配置、运行环境检查、数据备份恢复、安全许可证复核、用户说明和打包诊断。  
-> 结论：阶段5生产化准备基本完成；Windows 安装包尚未生成，阻塞原因是 electron-builder 打包阶段访问 GitHub 资源时网络重置或超时。
+> 结论：阶段5生产化准备完成；Windows 目录包和 NSIS 安装包已生成，打包后目录包冒烟、安装包静默安装、安装版冒烟和卸载验收均已通过。
 
 ## 已完成
 
@@ -10,7 +10,9 @@
 - 新增 `npm run stage5:runtime-check`，检查 Node、npm、Python、FFmpeg、本地 API 端口、运行目录和 `.gitignore` 安全项。
 - 新增 `npm run stage5:package-plan`，检查 Windows 打包方案、打包脚本和 `electron-builder` 安装状态。
 - 安装 `electron-builder`，并在桌面端加入 `pack` / `dist` 脚本。
-- 桌面端打包配置已限制打包范围，不包含 `.venv`、`.local-data`、`backups`、FFmpeg 二进制或根目录测试素材。
+- 桌面端打包配置已限制打包范围，不包含 `.local-data`、`backups`、FFmpeg 二进制或根目录测试素材。
+- 桌面端安装包已随包提供本地 API 源码、启动脚本和 Python 虚拟环境，打包后可自动拉起本地 API。
+- 桌面端打包配置已使用本地 Electron 运行时，减少打包阶段对 GitHub 下载的依赖。
 - 新增数据备份与恢复脚本，支持 SQLite 被本地 API 占用时的在线备份。
 - 新增安全审查与许可证复核文档，明确 FFmpeg 当前作为外部依赖，不随包分发。
 - 新增最终用户使用说明，覆盖启动、搜索、截图反查、浏览器采集、视频号半自动、备份恢复和常见问题。
@@ -41,10 +43,25 @@ npm run stage5:preflight
 - `npm run smoke`
 - `npm run stage5:package-plan`
 - `npm run stage5:preflight`
+- `npm run pack`
+- `npm run dist`
+- 打包后目录包冒烟：`electron smoke api status: ready`
+- 安装包静默安装：返回 `exitCode=0`
+- 安装版冒烟：`electron smoke api status: ready`
+- 安装版静默卸载：返回 `exitCode=0`
 
-尚未通过：
+已生成产物：
 
-- `npm run pack` 尚未成功生成 `apps\desktop\dist\win-unpacked`。
+- `apps\desktop\dist\win-unpacked`
+- `apps\desktop\dist\全网视频素材智能搜索助手 Setup 0.1.0-stage1.exe`
+
+安装验收结果：
+
+- 已安装到 `E:\搜索插件\stage5-install-smoke` 测试目录。
+- 安装目录包含主程序、卸载程序和 `resources\app-runtime` 随包运行时。
+- 安装版程序可启动并连接本地 API。
+- 静默卸载后 `stage5-install-smoke` 目录已清理。
+- 卸载后未发现桌面端进程残留，`17860` 端口未被继续占用。
 
 已观察到的失败：
 
@@ -55,13 +72,12 @@ npm run stage5:preflight
 当前判断：
 
 - 打包配置已完成。
-- 安装包产物尚未验证。
-- 阻塞点是当前机器访问 GitHub 资源不稳定，不是应用代码测试失败。
+- 目录包和安装包已生成。
+- 打包后目录包冒烟已通过。
+- 安装、启动、卸载验收已通过。
 
 ## 未完成
 
-- 尚未生成 Windows 目录包。
-- 尚未生成 Windows NSIS 安装包。
 - 尚未签名安装包。
 - 尚未配置自动更新。
 - 尚未随安装包提供第三方依赖许可证清单。
@@ -78,26 +94,6 @@ npm run stage5:preflight
 
 ## 下一步建议
 
-1. 等 GitHub 网络稳定后运行：
-
-```powershell
-curl.exe -I https://github.com
-cd E:\搜索插件\apps\desktop
-npm run pack
-```
-
-2. 目录包通过后，再运行：
-
-```powershell
-npm run dist
-```
-
-3. 生成安装包后补安装包冒烟验收：
-
-- 安装包能安装。
-- 桌面端能启动。
-- API 状态能显示 ready。
-- 搜索、素材库、截图反查和视频号半自动入口可打开。
-- 卸载不会删除用户主动备份的数据。
-
-4. 安装包验收通过后，再决定是否配置自动更新和发布渠道。
+1. 如需对外分发，先补安装包签名、图标和第三方依赖许可证清单。
+2. 如需线上更新，再设计自动更新和发布渠道。
+3. 如需提升识别能力，再把 Mock OCR / Mock 视觉向量替换为真实模型提供方。

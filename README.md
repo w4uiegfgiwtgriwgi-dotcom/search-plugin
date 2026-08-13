@@ -1,6 +1,6 @@
 # 全网视频素材智能搜索助手
 
-当前阶段：阶段4（视频号半自动流程）。
+当前阶段：阶段5（Windows 打包与生产化验收）。
 
 这是一个 Windows 本地素材搜索与截图反查 MVP，包含桌面端、本地 API、Chrome MV3 扩展骨架和本地素材库。当前仍使用 Mock OCR 与 Mock 视觉向量，不宣称真实平台全网搜索能力。
 
@@ -30,6 +30,23 @@ npm start
 cd E:\搜索插件
 .\.venv\Scripts\python.exe scripts\run-fastapi-api.py
 ```
+
+## Windows 安装包
+
+已生成本机 Windows 安装包：
+
+```text
+E:\搜索插件\apps\desktop\dist\全网视频素材智能搜索助手 Setup 0.1.0-stage1.exe
+```
+
+目录包位置：
+
+```text
+E:\搜索插件\apps\desktop\dist\win-unpacked
+```
+
+打包后目录包冒烟已通过，输出 `electron smoke api status: ready`。
+安装包静默安装、安装版冒烟和静默卸载均已通过。
 
 ## 浏览器扩展验收
 

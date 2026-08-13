@@ -25,6 +25,34 @@
       "package.json"
     ],
     "asar": true,
+    "electronDist": "node_modules/electron/dist",
+    "extraResources": [
+      {
+        "from": "../../apps/local-api",
+        "to": "app-runtime/apps/local-api",
+        "filter": [
+          "vmf_api/**/*",
+          "!vmf_api/**/__pycache__/**",
+          "!vmf_api/**/*.pyc",
+          "requirements.lock.txt",
+          "requirements.in",
+          "README.md"
+        ]
+      },
+      {
+        "from": "../../scripts/run-fastapi-api.py",
+        "to": "app-runtime/scripts/run-fastapi-api.py"
+      },
+      {
+        "from": "../../.venv",
+        "to": "app-runtime/.venv",
+        "filter": [
+          "**/*",
+          "!**/__pycache__/**",
+          "!**/*.pyc"
+        ]
+      }
+    ],
     "win": {
       "signAndEditExecutable": false,
       "target": [

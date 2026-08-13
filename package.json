@@ -19,6 +19,7 @@
     "stage6:login-xhs": "powershell -ExecutionPolicy Bypass -File scripts/stage6-login-source.ps1 -Platform xiaohongshu",
     "stage6:login-xhs:qrcode": "powershell -ExecutionPolicy Bypass -File scripts/stage6-login-source.ps1 -Platform xiaohongshu -QrCode",
     "stage6:login-douyin": "powershell -ExecutionPolicy Bypass -File scripts/stage6-login-source.ps1 -Platform douyin",
+    "stage6:smoke-real-search": "powershell -ExecutionPolicy Bypass -File scripts/stage6-smoke-real-search.ps1",
     "api:dev": ".\\.venv\\Scripts\\python.exe scripts/run-fastapi-api.py",
     "api:legacy": "set PYTHONPATH=apps/local-api&& C:\\Users\\Administrator.DESKTOP-P33KF9U\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe -m vmf_api.server",
     "desktop:start": "cd apps/desktop && npm start"

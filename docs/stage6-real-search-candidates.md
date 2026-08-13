@@ -101,6 +101,7 @@ npm run stage6:login-douyin
 ```powershell
 cd E:\搜索插件
 npm run stage6:check-sources
+npm run stage6:smoke-real-search
 npm run test:api
 ```
 
@@ -115,6 +116,13 @@ npm run test:api
 - `未配置`：没有找到 CLI 命令。
 - `未登录`：CLI 命令已找到，但还没有检测到登录态文件。
 - `登录态已保存`：CLI 命令和登录态文件都已找到，可以尝试真实搜索。
+
+`stage6:smoke-real-search` 会用默认线索做一次真实候选源冒烟。它不会下载视频，也不会点赞、评论或发布，只会输出：
+
+- 当前候选源状态。
+- 真实搜索是否成功。
+- 如果失败，是需要登录、网络受限，还是平台/CLI 返回了其他错误。
+- 如果成功，展示前几条候选链接和匹配度。
 
 `test:api` 会模拟小红书/抖音 CLI JSON 输出，验证：
 

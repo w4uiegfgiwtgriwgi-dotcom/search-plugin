@@ -90,6 +90,9 @@ button[data-export] { background: #2f6f4e; }
 .results { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-top: 16px; }
 .result-card h2 { font-size: 17px; margin: 8px 0; }
 .source, .meta { font-size: 12px; color: #5e6a75; }
+.match-score { display: grid; gap: 4px; border: 1px solid #b7d5f8; border-radius: 6px; background: #f2f8ff; color: #26313d; padding: 8px; margin: 10px 0; font-size: 13px; }
+.match-score strong { color: #174ea6; }
+.match-warning { color: #8a5a00; font-size: 12px; }
 .card-actions { margin-top: 12px; justify-content: space-between; }
 .stage2-output { min-height: 96px; overflow: auto; background: #111827; color: #e5e7eb; border-radius: 6px; padding: 12px; }
 a { color: #1f6feb; }

@@ -707,13 +707,27 @@ class LocalApiService:
             return json.dumps(results, ensure_ascii=False, indent=2)
         if fmt == "csv":
             output = io.StringIO()
-            fields = ["id", "platform", "content_type", "title", "source_url", "author_name", "published_at", "rights_status"]
+            fields = ["id", "platform", "content_type", "title", "source_url", "author_name", "published_at", "rights_status", "semantic_match_percent", "semantic_match_reasons"]
             writer = csv.DictWriter(output, fieldnames=fields, extrasaction="ignore")
-            writer.writeheader(); writer.writerows(results)
+            writer.writeheader()
+            writer.writerows([self._export_result_row(item) for item in results])
             return output.getvalue()
         if fmt == "md":
-            return "# 搜索结果导出\n\n" + "".join(f"- [{item['title']}]({item['source_url']}) - {item['platform']}\n" for item in results)
+            return "# 搜索结果导出\n\n" + "".join(self._export_result_md_line(item) for item in results)
         raise ValueError(f"unsupported export format: {fmt}")
+    def _export_result_row(self, item: dict[str, Any]) -> dict[str, Any]:
+        raw = item.get("raw_metadata_json") or {}
+        copied = dict(item)
+        copied["semantic_match_percent"] = raw.get("semantic_match_percent", "")
+        copied["semantic_match_reasons"] = "；".join(raw.get("semantic_match_reasons", []))
+        return copied
+    def _export_result_md_line(self, item: dict[str, Any]) -> str:
+        raw = item.get("raw_metadata_json") or {}
+        percent = raw.get("semantic_match_percent")
+        reasons = "；".join(raw.get("semantic_match_reasons", []))
+        score = f" · 匹配度 {percent}%" if percent is not None else ""
+        reason = f" · {reasons}" if reasons else ""
+        return f"- [{item['title']}]({item['source_url']}) - {item['platform']}{score}{reason}\n"
     def analyze_image(self, image_path: str | Path) -> dict[str, Any]:
         return self.media_analyzer.analyze_image(image_path)
     def analyze_uploaded_image(self, filename: str, data: bytes) -> dict[str, Any]:

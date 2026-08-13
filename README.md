@@ -12,6 +12,7 @@
 - 素材库：支持搜索收藏和截图反查收藏统一管理，包含复核状态、版权状态、标签备注、可信度、待处理清单、可用状态和时间线。
 - 浏览器扩展：用户主动点击后读取当前公开页面标题、URL、作者、描述、封面、发布时间和站点名，并保存到本地素材库。
 - 视频号半自动：生成视频号人工搜索词、复制块、人工搜索步骤和安全边界，不自动登录、不自动搜索、不读取登录态。
+- 小红书/抖音真实候选：可桥接本机已安装的搜索 CLI，返回公开视频候选链接，并显示匹配度和匹配理由。
 
 ## 快速启动
 
@@ -47,6 +48,26 @@ E:\搜索插件\apps\desktop\dist\win-unpacked
 
 打包后目录包冒烟已通过，输出 `electron smoke api status: ready`。
 安装包静默安装、安装版冒烟和静默卸载均已通过。
+
+## 小红书和抖音真实候选源
+
+桌面端搜索区可以勾选“小红书真实候选”和“抖音真实候选”。
+
+默认会寻找以下本机命令：
+
+```powershell
+xhs search {query} --json --limit {limit}
+dy search {query} --json --limit {limit}
+```
+
+如果你安装的开源工具命令不同，可以设置：
+
+```powershell
+$env:VMF_XHS_SEARCH_COMMAND = "你的xhs搜索命令 {query} {limit}"
+$env:VMF_DOUYIN_SEARCH_COMMAND = "你的dy搜索命令 {query} {limit}"
+```
+
+详细说明见 `docs/stage6-real-search-candidates.md`。
 
 ## 浏览器扩展验收
 
@@ -124,6 +145,7 @@ node --check src\popup.js
 - `docs/stage5-data-backup.md`
 - `docs/stage5-security-license-review.md`
 - `docs/stage5-acceptance-report.md`
+- `docs/stage6-real-search-candidates.md`
 
 ## 重要边界
 

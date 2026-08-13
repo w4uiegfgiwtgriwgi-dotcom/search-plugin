@@ -251,18 +251,32 @@ function renderMultiAssetMatches(result) {
 
 function renderResults(results) {
   currentResults = results;
-  resultsEl.innerHTML = results.map((item) => `
-    <article class="result-card">
-      <div class="source">${item.platform}</div>
-      <h2>${item.title}</h2>
-      <p>${item.description || "暂无描述"}</p>
-      <div class="meta">${item.author_name || "未知作者"} · ${item.published_at || "未知时间"}</div>
-      <div class="card-actions">
-        <a href="${item.source_url}" target="_blank" rel="noreferrer">打开原链接</a>
-        <button data-save-result="${item.id}">收藏到项目</button>
+  resultsEl.innerHTML = results.map((item) => {
+    const metadata = item.raw_metadata_json || {};
+    const percent = metadata.semantic_match_percent;
+    const reasons = metadata.semantic_match_reasons || [];
+    const warning = metadata.semantic_match_warning || "";
+    const scoreHtml = percent == null ? "" : `
+      <div class="match-score">
+        <strong>匹配度 ${escapeHtml(percent)}%</strong>
+        <span>${escapeHtml(reasons.join("；") || "等待人工复核")}</span>
       </div>
-    </article>
-  `).join("");
+    `;
+    return `
+      <article class="result-card">
+        <div class="source">${escapeHtml(item.platform)}</div>
+        <h2>${escapeHtml(item.title)}</h2>
+        <p>${escapeHtml(item.description || "暂无描述")}</p>
+        ${scoreHtml}
+        ${warning ? `<p class="match-warning">${escapeHtml(warning)}</p>` : ""}
+        <div class="meta">${escapeHtml(item.author_name || "未知作者")} · ${escapeHtml(item.published_at || "未知时间")}</div>
+        <div class="card-actions">
+          <a href="${escapeHtml(item.source_url)}" target="_blank" rel="noreferrer">打开原链接</a>
+          <button data-save-result="${item.id}">收藏到项目</button>
+        </div>
+      </article>
+    `;
+  }).join("");
 }
 
 function renderWechatPlan(plan) {

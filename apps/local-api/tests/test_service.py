@@ -1,5 +1,10 @@
-﻿import json
+import json
+import os
+import tempfile
 import unittest
+from pathlib import Path
+
+from vmf_api.adapters import DouyinCliAdapter, XiaohongshuCliAdapter
 from vmf_api.query import expand_query, normalize_url
 from vmf_api.service import LocalApiService
 
@@ -9,13 +14,13 @@ class LocalApiServiceTest(unittest.TestCase):
     def tearDown(self):
         self.service.close()
     def test_search_task_collects_two_platforms(self):
-        task = self.service.create_search_task("极端高温废墟旧空调")
+        task = self.service.create_search_task("极端高温废墟旧空调", ["web-search", "bilibili"])
         self.assertEqual(task["status"], "completed")
         results = self.service.list_results(task["id"])
         self.assertEqual(len(results), 3)
         self.assertEqual({item["platform"] for item in results}, {"web-search", "bilibili"})
     def test_project_material_and_exports(self):
-        task = self.service.create_search_task("旧空调")
+        task = self.service.create_search_task("旧空调", ["web-search", "bilibili"])
         result = self.service.list_results(task["id"])[0]
         project = self.service.create_project("测试项目")
         material = self.service.add_material(project["id"], result["id"], ["空调"], "可复查")
@@ -68,6 +73,49 @@ class LocalApiServiceTest(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             self.service.build_wechat_channel_search_plan("")
+    def test_stage6_external_cli_adapters_parse_json_and_score(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            xhs_script = temp_path / "fake_xhs.py"
+            dy_script = temp_path / "fake_dy.py"
+            xhs_script.write_text(
+                "import json\n"
+                "print(json.dumps({'items':[{'title':'电动车轮胎被钉子扎孔现场补胎','url':'https://www.xiaohongshu.com/explore/abc','nickname':'修车师傅','desc':'电动车扎胎后发现钉子孔，现场补胎','tags':['电动车','扎胎','补胎']} ]}, ensure_ascii=False))\n",
+                encoding="utf-8",
+            )
+            dy_script.write_text(
+                "import json\n"
+                "print(json.dumps({'data':[{'desc':'电动车被钉子扎了一个孔','aweme_id':'123456','author':{'nickname':'路边维修'}}]}, ensure_ascii=False))\n",
+                encoding="utf-8",
+            )
+            old_xhs = os.environ.get("VMF_XHS_SEARCH_COMMAND")
+            old_douyin = os.environ.get("VMF_DOUYIN_SEARCH_COMMAND")
+            os.environ["VMF_XHS_SEARCH_COMMAND"] = f'"{os.sys.executable}" "{xhs_script}"'
+            os.environ["VMF_DOUYIN_SEARCH_COMMAND"] = f'"{os.sys.executable}" "{dy_script}"'
+            try:
+                service = LocalApiService(":memory:", {
+                    "xiaohongshu": XiaohongshuCliAdapter(),
+                    "douyin": DouyinCliAdapter(),
+                })
+                task = service.create_search_task("电动车被钉子扎孔", ["xiaohongshu", "douyin"], 3)
+                results = service.list_results(task["id"])
+                service.close()
+            finally:
+                if old_xhs is None:
+                    os.environ.pop("VMF_XHS_SEARCH_COMMAND", None)
+                else:
+                    os.environ["VMF_XHS_SEARCH_COMMAND"] = old_xhs
+                if old_douyin is None:
+                    os.environ.pop("VMF_DOUYIN_SEARCH_COMMAND", None)
+                else:
+                    os.environ["VMF_DOUYIN_SEARCH_COMMAND"] = old_douyin
+
+        self.assertEqual(task["status"], "completed")
+        self.assertEqual({item["platform"] for item in results}, {"xiaohongshu", "douyin"})
+        self.assertTrue(all(item["raw_metadata_json"]["semantic_match_percent"] >= 0 for item in results))
+        self.assertTrue(all(item["raw_metadata_json"]["semantic_match_reasons"] for item in results))
+        self.assertTrue(any(item["raw_metadata_json"]["semantic_match_basis"] == "title+description+tags+public_metadata" for item in results))
+        self.assertIn("https://www.douyin.com/video/123456", {item["source_url"] for item in results})
     def test_query_helpers(self):
         self.assertIn("air conditioner", expand_query("旧空调"))
         self.assertEqual(normalize_url("HTTPS://Example.COM/a?utm_source=x&id=1#top"), "https://example.com/a?id=1")

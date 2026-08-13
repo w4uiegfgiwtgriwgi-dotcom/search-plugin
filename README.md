@@ -94,6 +94,7 @@ npm run stage4:check
 npm run stage5:preflight
 npm run stage5:package-plan
 npm run stage5:runtime-check
+npm run stage6:check-sources
 npm run stage5:backup-data
 ```
 
@@ -102,6 +103,7 @@ npm run stage5:backup-data
 `npm run stage5:preflight` 会在阶段4检查基础上，额外检查打包前关键文件、FFmpeg、Python 和 Electron 依赖。
 `npm run stage5:package-plan` 会检查 Windows 打包方案文件和桌面端打包前置条件，不会生成安装包。
 `npm run stage5:runtime-check` 会检查 Node、npm、Python、FFmpeg、本地 API 端口、运行目录和 `.gitignore` 安全项。
+`npm run stage6:check-sources` 会检查小红书/抖音真实候选源 CLI 是否已经配置。
 `npm run stage5:backup-data` 会把本地素材库 `.local-data` 备份为 zip；恢复方式见阶段5数据备份说明。
 
 阶段2/3 常用检查：

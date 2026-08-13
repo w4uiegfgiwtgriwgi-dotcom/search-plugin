@@ -64,10 +64,12 @@ $env:VMF_DOUYIN_SEARCH_COMMAND = "dy search {query} --json --limit {limit}"
 
 ```powershell
 cd E:\搜索插件
+npm run stage6:check-sources
 npm run test:api
 ```
 
-阶段6测试会模拟小红书/抖音 CLI JSON 输出，验证：
+`stage6:check-sources` 会检查当前机器是否能找到 `xhs` 和 `dy` 命令。
+`test:api` 会模拟小红书/抖音 CLI JSON 输出，验证：
 
 - JSON 可解析。
 - 链接、标题、作者可归一化。

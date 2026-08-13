@@ -7,6 +7,8 @@ import re
 import shlex
 import shutil
 import subprocess
+import tempfile
+from pathlib import Path
 from typing import Any
 from .models import SearchOptions, SearchResult
 from .query import normalize_url
@@ -126,20 +128,22 @@ class ExternalCliSearchAdapter(PlatformAdapter):
         )
 
     def check_session(self) -> dict[str, Any]:
-        command = self._command_template().split()[0]
-        executable = shutil.which(command)
+        command = self._build_command("测试", 1)[0]
+        executable = self._resolve_executable(command)
         return {
             "platform": self.platform,
             "status": "available" if executable else "not_configured",
             "command": command,
+            "path": executable or "",
             "hint": "" if executable else f"未找到 {command} 命令；安装对应开源 CLI 后，或设置 {self.command_template_env} 指向实际搜索命令。",
         }
 
     def search(self, query: str, options: SearchOptions) -> list[SearchResult]:
         command = self._build_command(query, options.max_results_per_platform)
-        executable = shutil.which(command[0])
+        executable = self._resolve_executable(command[0])
         if not executable:
             raise RuntimeError(f"未配置 {self.platform_label} 搜索 CLI：找不到 {command[0]}。请先安装对应开源工具，或设置 {self.command_template_env}。")
+        command[0] = executable
         env = {
             **os.environ,
             "PYTHONIOENCODING": "utf-8",
@@ -152,12 +156,12 @@ class ExternalCliSearchAdapter(PlatformAdapter):
             text=True,
             encoding="utf-8",
             errors="replace",
-            env=env,
+            env=self._runtime_env(env),
             timeout=45,
         )
         if completed.returncode != 0:
             detail = (completed.stderr or completed.stdout or "").strip()
-            raise RuntimeError(f"{self.platform_label} 搜索 CLI 执行失败：{detail[:500]}")
+            raise RuntimeError(self._friendly_cli_error(detail))
         payload = self._load_json(completed.stdout)
         results = [self._result_from_item(item, query) for item in self._extract_items(payload)]
         return results[: options.max_results_per_platform]
@@ -168,6 +172,69 @@ class ExternalCliSearchAdapter(PlatformAdapter):
     def _build_command(self, query: str, limit: int) -> list[str]:
         template = self._command_template().format(query=query, limit=max(1, int(limit)))
         return shlex.split(template)
+
+    def _resolve_executable(self, command: str) -> str:
+        command_path = Path(command)
+        if command_path.exists():
+            return str(command_path)
+        resolved = shutil.which(command)
+        if resolved:
+            return resolved
+        root = Path(__file__).resolve().parents[3]
+        for suffix in ("", ".exe", ".cmd", ".bat"):
+            candidate = root / ".venv" / "Scripts" / f"{command}{suffix}"
+            if candidate.exists():
+                return str(candidate)
+        return ""
+
+    def _runtime_env(self, base_env: dict[str, str]) -> dict[str, str]:
+        runtime_home = self._runtime_home()
+        appdata = runtime_home / "AppData" / "Roaming"
+        localappdata = runtime_home / "AppData" / "Local"
+        appdata.mkdir(parents=True, exist_ok=True)
+        localappdata.mkdir(parents=True, exist_ok=True)
+        return {
+            **base_env,
+            "HOME": str(runtime_home),
+            "USERPROFILE": str(runtime_home),
+            "APPDATA": str(appdata),
+            "LOCALAPPDATA": str(localappdata),
+        }
+
+    def _runtime_home(self) -> Path:
+        configured = os.environ.get("VMF_SEARCH_CLI_HOME")
+        candidates = []
+        if configured:
+            candidates.append(Path(configured))
+        if os.environ.get("LOCALAPPDATA"):
+            candidates.append(Path(os.environ["LOCALAPPDATA"]) / "VideoMaterialFinder" / "search-cli")
+        candidates.append(Path(tempfile.gettempdir()) / "VideoMaterialFinder" / "search-cli")
+        for candidate in candidates:
+            try:
+                candidate.mkdir(parents=True, exist_ok=True)
+                return candidate
+            except OSError:
+                continue
+        return Path(tempfile.gettempdir())
+
+    def _friendly_cli_error(self, detail: str) -> str:
+        normalized = str(detail or "").strip()
+        lower = normalized.lower()
+        short_detail = normalized[:500]
+        if "not_authenticated" in lower or "no 'a1' cookie" in lower or "login" in lower and "cookie" in lower:
+            return (
+                f"{self.platform_label} 需要先完成登录授权。"
+                f"请先在本机浏览器登录 {self.platform_label}，再按开源 CLI 的登录提示保存 Cookie；"
+                f"当前搜索没有拿到可用登录态。原始提示：{short_detail}"
+            )
+        if "winerror 10013" in lower or "network error" in lower or "请求失败" in normalized:
+            return (
+                f"{self.platform_label} 搜索时网络访问被系统或当前运行环境拦截。"
+                f"请确认网络、防火墙、代理和平台访问正常后重试。原始提示：{short_detail}"
+            )
+        if "timed out" in lower or "timeout" in lower:
+            return f"{self.platform_label} 搜索超时，请稍后重试或减少单次结果数量。原始提示：{short_detail}"
+        return f"{self.platform_label} 搜索 CLI 执行失败：{short_detail}"
 
     def _load_json(self, output: str) -> Any:
         text = str(output or "").strip()
@@ -269,13 +336,13 @@ class XiaohongshuCliAdapter(ExternalCliSearchAdapter):
     platform = "xiaohongshu"
     platform_label = "小红书"
     command_template_env = "VMF_XHS_SEARCH_COMMAND"
-    default_command_template = 'xhs search "{query}" --json --limit {limit}'
+    default_command_template = 'xhs search "{query}" --type video --json'
 
 class DouyinCliAdapter(ExternalCliSearchAdapter):
     platform = "douyin"
     platform_label = "抖音"
     command_template_env = "VMF_DOUYIN_SEARCH_COMMAND"
-    default_command_template = 'dy search "{query}" --json --limit {limit}'
+    default_command_template = 'dy search "{query}" --type video --count {limit} --json-output'
 
     def _source_url(self, item: dict[str, Any]) -> str:
         source = self._pick(item, "source_url", "url", "share_url", "link", "href", "aweme_url")

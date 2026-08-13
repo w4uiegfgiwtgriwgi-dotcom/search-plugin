@@ -116,6 +116,12 @@ class LocalApiServiceTest(unittest.TestCase):
         self.assertTrue(all(item["raw_metadata_json"]["semantic_match_reasons"] for item in results))
         self.assertTrue(any(item["raw_metadata_json"]["semantic_match_basis"] == "title+description+tags+public_metadata" for item in results))
         self.assertIn("https://www.douyin.com/video/123456", {item["source_url"] for item in results})
+    def test_stage6_external_cli_errors_are_readable(self):
+        xhs_error = XiaohongshuCliAdapter()._friendly_cli_error("not_authenticated: No 'a1' cookie found")
+        douyin_error = DouyinCliAdapter()._friendly_cli_error("Network error: [WinError 10013] socket blocked")
+
+        self.assertIn("需要先完成登录授权", xhs_error)
+        self.assertIn("网络访问被系统或当前运行环境拦截", douyin_error)
     def test_query_helpers(self):
         self.assertIn("air conditioner", expand_query("旧空调"))
         self.assertEqual(normalize_url("HTTPS://Example.COM/a?utm_source=x&id=1#top"), "https://example.com/a?id=1")

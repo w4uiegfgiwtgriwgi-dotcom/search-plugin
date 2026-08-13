@@ -57,6 +57,15 @@ function selectedUnavailablePlatforms() {
   });
 }
 
+function platformLabel(platform) {
+  return {
+    xiaohongshu: "小红书",
+    douyin: "抖音",
+    "web-search": "公开网页",
+    bilibili: "B站样本",
+  }[platform] || platform;
+}
+
 async function api(path, options = {}) {
   const response = await fetch(`${apiBase}${path}`, {
     headers: { "content-type": "application/json", ...(options.headers || {}) },
@@ -86,6 +95,60 @@ function friendlyError(error) {
   const message = error?.message || String(error);
   if (message === "Failed to fetch") return "本地 API 暂时不可用，请确认桌面端 API 已启动";
   return message;
+}
+
+function friendlyTaskStatus(task, resultCount) {
+  const status = task?.status || "unknown";
+  const error = String(task?.error_summary || "").trim();
+  const labels = {
+    completed: "已完成",
+    partial_success: "部分完成",
+    failed: "搜索失败",
+    running: "搜索中",
+  };
+  const base = `任务 ${task.id}：${labels[status] || status}，找到 ${resultCount} 条`;
+  if (!error) return base;
+  return `${base}。提示：${error}`;
+}
+
+function unavailablePlatformMessage(platforms) {
+  const names = platforms.map(platformLabel).join(" / ");
+  return `已勾选 ${names}，但候选源命令还没找到；先运行 npm run stage6:check-sources，或继续用公开网页/B站样本测试。`;
+}
+
+function loginGuidesHtml() {
+  const guides = [
+    {
+      platform: "xiaohongshu",
+      title: "小红书登录授权",
+      command: "xhs login --cookie-source chrome --json",
+      steps: [
+        "先用 Chrome 打开小红书官网并登录账号。",
+        "复制下面命令，在项目终端里运行；如果浏览器不是 Chrome，把 chrome 换成 edge 或直接用 xhs login --qrcode。",
+        "命令成功后回到这里刷新候选源，再勾选小红书真实候选搜索。",
+      ],
+    },
+    {
+      platform: "douyin",
+      title: "抖音登录授权",
+      command: "dy login --browser",
+      steps: [
+        "先用浏览器打开抖音网页版并登录账号。",
+        "复制下面命令，在项目终端里运行，让 CLI 从已登录浏览器读取 Cookie。",
+        "命令成功后回到这里刷新候选源，再勾选抖音真实候选搜索。",
+      ],
+    },
+  ];
+  return guides.map((guide) => `
+    <div class="login-guide-card">
+      <div class="login-guide-title">
+        <strong>${escapeHtml(guide.title)}</strong>
+        <button data-copy-login-command="${escapeHtml(guide.command)}">复制命令</button>
+      </div>
+      <ol>${guide.steps.map((step) => `<li>${escapeHtml(step)}</li>`).join("")}</ol>
+      <code>${escapeHtml(guide.command)}</code>
+    </div>
+  `).join("");
 }
 
 function escapeHtml(value) {
@@ -299,14 +362,21 @@ function renderSourceStatus(platforms) {
   const parts = ["xiaohongshu", "douyin"].map((platform) => {
     const session = platformStatus.get(platform)?.session || {};
     const available = session.status === "available";
-    const text = `${labels[platform]}：${available ? "已配置" : "未配置"}`;
-    const title = session.hint || session.command || "";
+    const text = `${labels[platform]}：${available ? "命令已找到" : "未配置"}`;
+    const title = available
+      ? `已找到 ${session.path || session.command || "候选源命令"}；真实搜索仍需要平台登录态和正常网络。`
+      : (session.hint || session.command || "");
     return `<span class="source-chip ${available ? "is-ready" : "is-missing"}" title="${escapeHtml(title)}">${escapeHtml(text)}</span>`;
   });
   sourceStatusEl.innerHTML = `
-    <span>真实候选源</span>
-    ${parts.join("")}
-    <span class="source-help">未配置时可先用公开网页/B站样本；真实搜索需安装对应 CLI。</span>
+    <div class="source-status-row">
+      <span>真实候选源</span>
+      ${parts.join("")}
+      <span class="source-help">命令已找到不等于已登录；真实搜索还需要平台登录态、网络正常。</span>
+    </div>
+    <div class="login-guide-grid">
+      ${loginGuidesHtml()}
+    </div>
   `;
 }
 
@@ -757,7 +827,7 @@ document.querySelector("#search").addEventListener("click", async () => {
     }
     const unavailable = selectedUnavailablePlatforms();
     if (unavailable.length > 0) {
-      statusEl.textContent = `已勾选 ${unavailable.join(" / ")}，但候选源未配置；请先运行 npm run stage6:check-sources`;
+      statusEl.textContent = unavailablePlatformMessage(unavailable);
       return;
     }
     await ensureProject();
@@ -767,7 +837,7 @@ document.querySelector("#search").addEventListener("click", async () => {
     });
     currentTaskId = task.id;
     const results = await api(`/api/search/tasks/${task.id}/results`);
-    statusEl.textContent = `任务 ${task.id}：${task.status}，找到 ${results.length} 条`;
+    statusEl.textContent = friendlyTaskStatus(task, results.length);
     renderResults(results);
   } catch (error) {
     statusEl.textContent = `本地 API 不可用：${friendlyError(error)}`;
@@ -806,6 +876,17 @@ wechatPlanOutput?.addEventListener("click", async (event) => {
     statusEl.textContent = "已复制视频号搜索词";
   } catch (error) {
     statusEl.textContent = `复制失败：${friendlyError(error)}`;
+  }
+});
+
+sourceStatusEl?.addEventListener("click", async (event) => {
+  const button = event.target.closest("button[data-copy-login-command]");
+  if (!button) return;
+  try {
+    await copyText(button.dataset.copyLoginCommand);
+    statusEl.textContent = "已复制平台登录命令";
+  } catch (error) {
+    statusEl.textContent = `复制登录命令失败：${friendlyError(error)}`;
   }
 });
 

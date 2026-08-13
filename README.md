@@ -52,12 +52,13 @@ E:\搜索插件\apps\desktop\dist\win-unpacked
 ## 小红书和抖音真实候选源
 
 桌面端搜索区可以勾选“小红书真实候选”和“抖音真实候选”。
+本项目会优先识别仓库 `.venv\Scripts` 里的 `xhs` / `dy` 命令，也支持系统 PATH 中的同名命令。
 
 默认会寻找以下本机命令：
 
 ```powershell
-xhs search {query} --json --limit {limit}
-dy search {query} --json --limit {limit}
+xhs search "{query}" --type video --json
+dy search "{query}" --type video --count {limit} --json-output
 ```
 
 如果你安装的开源工具命令不同，可以设置：
@@ -65,6 +66,15 @@ dy search {query} --json --limit {limit}
 ```powershell
 $env:VMF_XHS_SEARCH_COMMAND = "你的xhs搜索命令 {query} {limit}"
 $env:VMF_DOUYIN_SEARCH_COMMAND = "你的dy搜索命令 {query} {limit}"
+$env:VMF_SEARCH_CLI_HOME = "候选源登录和缓存目录"
+```
+
+小红书、抖音真实搜索通常需要平台登录态、正常网络和平台页面可访问。若未登录或被网络/风控拦截，界面会显示“需要先登录授权”或“网络访问受限”，不会把底层报错直接甩给你。
+桌面端候选源状态区会显示登录引导，也可以直接复制以下命令：
+
+```powershell
+xhs login --cookie-source chrome --json
+dy login --browser
 ```
 
 详细说明见 `docs/stage6-real-search-candidates.md`。

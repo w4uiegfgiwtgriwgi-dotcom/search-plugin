@@ -106,6 +106,7 @@ node --check src\popup.js
 - `docs/stage5-package-troubleshooting.md`
 - `docs/stage5-data-backup.md`
 - `docs/stage5-security-license-review.md`
+- `docs/stage5-acceptance-report.md`
 
 ## 重要边界
 

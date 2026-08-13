@@ -60,6 +60,7 @@ npm run stage5:runtime-check
 - 当前打包配置不包含 `.venv`、`.local-data`、`backups` 或 FFmpeg 二进制。
 - 当前 `npm run pack` 尚未成功生成目录包，原因是 electron-builder 打包阶段访问 GitHub 资源时网络重置或超时。
 - 已新增打包诊断与重试说明：`docs/stage5-package-troubleshooting.md`。
+- 已新增阶段5最终验收报告：`docs/stage5-acceptance-report.md`。
 - 尚未决定 FFmpeg 是否随安装包分发；当前本机 FFmpeg 为外部依赖。
 - 如果未来随包分发 FFmpeg，必须重新确认 GPL/LGPL 构建和分发义务。
 - 尚未设计自动更新策略。

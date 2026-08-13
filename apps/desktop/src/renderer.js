@@ -3,6 +3,7 @@ const statusEl = document.querySelector("#status");
 const resultsEl = document.querySelector("#results");
 const projectSelect = document.querySelector("#project-select");
 const apiPill = document.querySelector("#api-pill");
+const sourceStatusEl = document.querySelector("#source-status");
 const stage2Output = document.querySelector("#stage2-output");
 const librarySummary = document.querySelector("#library-summary");
 const libraryList = document.querySelector("#library-list");
@@ -28,6 +29,7 @@ let currentMatch = null;
 let currentBulkMatches = [];
 let libraryActionFilter = "all";
 let currentWechatPlan = null;
+let platformStatus = new Map();
 
 function renderApiStatus(status) {
   if (!apiPill) return;
@@ -45,6 +47,14 @@ function renderApiStatus(status) {
 
 function selectedPlatforms() {
   return Array.from(document.querySelectorAll("input[type='checkbox']:checked")).map((item) => item.value);
+}
+
+function selectedUnavailablePlatforms() {
+  return selectedPlatforms().filter((platform) => {
+    if (!["xiaohongshu", "douyin"].includes(platform)) return false;
+    const session = platformStatus.get(platform)?.session || {};
+    return session.status !== "available";
+  });
 }
 
 async function api(path, options = {}) {
@@ -277,6 +287,33 @@ function renderResults(results) {
       </article>
     `;
   }).join("");
+}
+
+function renderSourceStatus(platforms) {
+  platformStatus = new Map(platforms.map((item) => [item.platform, item]));
+  if (!sourceStatusEl) return;
+  const labels = {
+    xiaohongshu: "小红书",
+    douyin: "抖音",
+  };
+  const parts = ["xiaohongshu", "douyin"].map((platform) => {
+    const session = platformStatus.get(platform)?.session || {};
+    const available = session.status === "available";
+    const text = `${labels[platform]}：${available ? "已配置" : "未配置"}`;
+    const title = session.hint || session.command || "";
+    return `<span class="source-chip ${available ? "is-ready" : "is-missing"}" title="${escapeHtml(title)}">${escapeHtml(text)}</span>`;
+  });
+  sourceStatusEl.innerHTML = `
+    <span>真实候选源</span>
+    ${parts.join("")}
+    <span class="source-help">未配置时可先用公开网页/B站样本；真实搜索需安装对应 CLI。</span>
+  `;
+}
+
+async function refreshPlatformStatus() {
+  const platforms = await api("/api/platforms");
+  renderSourceStatus(platforms);
+  return platforms;
 }
 
 function renderWechatPlan(plan) {
@@ -715,6 +752,14 @@ document.querySelector("#search").addEventListener("click", async () => {
   statusEl.textContent = "搜索中";
   resultsEl.innerHTML = "";
   try {
+    if (platformStatus.size === 0) {
+      await refreshPlatformStatus().catch(() => {});
+    }
+    const unavailable = selectedUnavailablePlatforms();
+    if (unavailable.length > 0) {
+      statusEl.textContent = `已勾选 ${unavailable.join(" / ")}，但候选源未配置；请先运行 npm run stage6:check-sources`;
+      return;
+    }
     await ensureProject();
     const task = await api("/api/search/tasks", {
       method: "POST",
@@ -1038,6 +1083,10 @@ document.addEventListener("paste", async (event) => {
   } catch (error) {
     stage2Output.textContent = `截图上传失败：${friendlyError(error)}`;
   }
+});
+
+refreshPlatformStatus().catch(() => {
+  if (sourceStatusEl) sourceStatusEl.textContent = "候选源状态暂不可用";
 });
 
 refreshProjects().catch(() => {

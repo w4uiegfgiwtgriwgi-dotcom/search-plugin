@@ -18,6 +18,11 @@ h1 { font-size: 24px; margin: 0; }
 textarea { width: 100%; min-height: 104px; box-sizing: border-box; border: 1px solid #b8c0ca; border-radius: 6px; padding: 12px; resize: vertical; font: inherit; }
 .controls, .inline-form, .export-actions, .card-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .controls { margin-top: 12px; }
+.source-status { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 12px; color: #5e6a75; font-size: 12px; }
+.source-chip { border: 1px solid #d7dde3; border-radius: 999px; padding: 4px 8px; background: #f8fafc; color: #26313d; }
+.source-chip.is-ready { background: #dff7e8; color: #175c32; border-color: #7cc695; }
+.source-chip.is-missing { background: #fff4cc; color: #6a4b00; border-color: #d6b85a; }
+.source-help { color: #7a8694; }
 .stage4-panel { margin-top: 16px; }
 .stage4-grid { display: grid; grid-template-columns: minmax(260px, 1.5fr) minmax(220px, 1fr); gap: 12px; }
 .stage4-grid label { display: grid; gap: 6px; font-size: 13px; color: #48525e; }
